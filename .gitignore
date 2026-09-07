@@ -1,0 +1,9 @@
+node_modules
+data/activity.json
+data/ai-activity-history.json
+data/.activity-state.json
+.DS_Store
+.env
+.env.*
+!.env.example
+*.log

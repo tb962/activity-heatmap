@@ -1,0 +1,18 @@
+{
+  "github": {
+    "username": "your-github-username"
+  },
+  "timezone": "auto",
+  "rangeDays": 365,
+  "historyDays": 730,
+  "output": "data/activity.json",
+  "historyOutput": "data/ai-activity-history.json",
+  "openUsageUrl": "http://127.0.0.1:6736/v1/usage",
+  "sources": {
+    "github": true,
+    "codex": true,
+    "claude": true,
+    "cursor": false,
+    "openUsage": true
+  }
+}

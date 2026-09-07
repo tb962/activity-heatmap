@@ -1,0 +1,23 @@
+{
+  "schema": "activity.v1",
+  "generatedAt": "",
+  "timezone": "UTC",
+  "range": {
+    "from": "2026-01-01",
+    "to": "2026-09-07"
+  },
+  "github": {
+    "username": "your-github-username",
+    "source": "github.com/your-github-username",
+    "href": "https://github.com/your-github-username",
+    "days": []
+  },
+  "ai": {
+    "metric": "tokens",
+    "available": false,
+    "source": "No local AI source has been connected yet.",
+    "days": [],
+    "sources": {},
+    "coverage": {}
+  }
+}

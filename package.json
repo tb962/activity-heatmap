@@ -1,0 +1,48 @@
+{
+  "name": "@tb962/activity-heatmap",
+  "version": "0.1.0",
+  "description": "An open-source activity heatmap that reads local AI usage and GitHub contributions.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "activity-graph": "./bin/activity-graph.mjs"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./styles.css": "./src/styles.css",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "src/styles.css",
+    "bin",
+    "lib",
+    "README.md",
+    "LICENSE",
+    "activity.config.example.json",
+    "data/activity.example.json"
+  ],
+  "sideEffects": ["**/*.css"],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "npm run build",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "test": "node --test test/**/*.test.mjs"
+  },
+  "peerDependencies": {
+    "react": ">=18.2.0",
+    "react-dom": ">=18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "typescript": "^5.0.0"
+  }
+}

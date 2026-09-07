@@ -21,6 +21,8 @@ export type ActivityGridResult = {
   maximum: number;
   total: number;
   unknownDays: number;
+  /** Upper bound of each shade band, ascending. Empty when nothing is active. */
+  thresholds: number[];
   monthLabels: Array<{ column: number; text: string }>;
 };
 
@@ -57,10 +59,54 @@ function midnightUtc(value: string | Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
 }
 
-export function activityLevel(value: number, maximum: number): number {
-  if (value <= 0 || maximum <= 0) return 0;
-  if (maximum <= 1) return 4;
+/**
+ * Shade bands are cut at quantiles of the active days rather than at fractions
+ * of the maximum. Token counts are heavy-tailed — one long day can be 20x the
+ * median — so linear-against-max collapses most of the calendar into the
+ * palest shade. Ranking the active days keeps all four shades in use whatever
+ * the unit is (tokens, contributions, messages, edited lines).
+ */
+export function quantileThresholds(values: readonly number[], bands = 4): number[] {
+  const active = values.filter((value) => value > 0).sort((left, right) => left - right);
+  if (active.length === 0) return [];
 
+  const thresholds: number[] = [];
+  for (let band = 1; band < bands; band += 1) {
+    const rank = Math.ceil((active.length * band) / bands) - 1;
+    const candidate = active[Math.max(0, Math.min(active.length - 1, rank))];
+    // Keep the ladder strictly increasing so repeated values do not create
+    // bands that can never be reached.
+    if (thresholds.length === 0 || candidate > thresholds[thresholds.length - 1]) {
+      thresholds.push(candidate);
+    }
+  }
+  // The top band always ends at the maximum, but only as a new rung: pushing
+  // a duplicate would inflate the band count and skew every lookup below it.
+  const maximum = active[active.length - 1];
+  if (thresholds.length === 0 || maximum > thresholds[thresholds.length - 1]) {
+    thresholds.push(maximum);
+  }
+  return thresholds;
+}
+
+export function activityLevel(
+  value: number,
+  maximumOrThresholds: number | readonly number[],
+): number {
+  if (value <= 0) return 0;
+
+  if (typeof maximumOrThresholds !== "number") {
+    const thresholds = maximumOrThresholds;
+    if (thresholds.length === 0) return 0;
+    const index = thresholds.findIndex((threshold) => value <= threshold);
+    const band = index === -1 ? thresholds.length : index + 1;
+    // A short ladder (few distinct values) still maps onto the 4-shade palette.
+    return Math.max(1, Math.min(4, Math.round((band / thresholds.length) * 4)));
+  }
+
+  const maximum = maximumOrThresholds;
+  if (maximum <= 0) return 0;
+  if (maximum <= 1) return 4;
   return Math.max(1, Math.min(4, Math.ceil((value / maximum) * 4)));
 }
 
@@ -147,6 +193,7 @@ export function buildActivityGrid({
   let maximum = 0;
   let total = 0;
   let unknownDays = 0;
+  const activeValues: number[] = [];
 
   while (cursor.getTime() <= finish.getTime()) {
     const week: ActivityGridWeek = [];
@@ -163,6 +210,7 @@ export function buildActivityGrid({
         if (known) {
           maximum = Math.max(maximum, value);
           total += value;
+          if (value > 0) activeValues.push(value);
         } else {
           unknownDays += 1;
         }
@@ -185,5 +233,12 @@ export function buildActivityGrid({
     weeks.push(week);
   }
 
-  return { weeks, maximum, total, unknownDays, monthLabels };
+  return {
+    weeks,
+    maximum,
+    total,
+    unknownDays,
+    thresholds: quantileThresholds(activeValues),
+    monthLabels,
+  };
 }

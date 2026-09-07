@@ -18,13 +18,23 @@ export type ActivityGridResult = {
     maximum: number;
     total: number;
     unknownDays: number;
+    /** Upper bound of each shade band, ascending. Empty when nothing is active. */
+    thresholds: number[];
     monthLabels: Array<{
         column: number;
         text: string;
     }>;
 };
 export declare function dayKey(value: string | Date): string;
-export declare function activityLevel(value: number, maximum: number): number;
+/**
+ * Shade bands are cut at quantiles of the active days rather than at fractions
+ * of the maximum. Token counts are heavy-tailed — one long day can be 20x the
+ * median — so linear-against-max collapses most of the calendar into the
+ * palest shade. Ranking the active days keeps all four shades in use whatever
+ * the unit is (tokens, contributions, messages, edited lines).
+ */
+export declare function quantileThresholds(values: readonly number[], bands?: number): number[];
+export declare function activityLevel(value: number, maximumOrThresholds: number | readonly number[]): number;
 export declare function columnsToCover(end: string | Date, minimumDays: number): number;
 export declare function columnsWithin(end: string | Date, maximumDays: number): number;
 export declare function gridMeasures({ width, desiredCell, gap, minimumColumns, maximumColumns, fitToWidth, }: {

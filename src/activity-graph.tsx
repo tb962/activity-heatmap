@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 import {
   addDays,
@@ -8,7 +8,6 @@ import {
   formatCompactNumber,
   formatDateLong,
   formatExactNumber,
-  getAllAiTokens,
   getCalendarRange,
   getProviderCoverage,
   isDateCovered,
@@ -24,6 +23,7 @@ import type {
   ActivityDataset,
   ActivityGraphProps,
   ActivityProvider,
+  ActivityTheme,
   AiActivityView,
 } from "./types.js";
 
@@ -34,6 +34,16 @@ const DEFAULT_PROVIDER_LABELS: Record<AiActivityView, string> = {
   claude: "Claude",
   codex: "Codex",
   cursor: "Cursor",
+};
+
+/**
+ * Cursor does not persist token counts locally, so it reports a different
+ * unit. Each view therefore carries its own metric label.
+ */
+const METRIC_LABELS: Record<string, string> = {
+  tokens: "tokens",
+  messages: "messages",
+  edits: "edited lines",
 };
 
 const PROVIDER_COLORS: Record<AiActivityView, string> = {
@@ -55,12 +65,18 @@ export function ActivityGraph({
   showAi = true,
   defaultAiProvider = "all",
   providerLabels: customProviderLabels,
+  theme = "system",
   className,
   style,
   ...sectionProps
 }: ActivityGraphProps) {
   const [aiProvider, setAiProvider] = useState<AiActivityView>(defaultAiProvider);
-  const providerLabels = { ...DEFAULT_PROVIDER_LABELS, ...customProviderLabels };
+  const resolvedTheme = useResolvedTheme(theme);
+  // Memoised so downstream useMemo deps stay stable across renders.
+  const providerLabels = useMemo(
+    () => ({ ...DEFAULT_PROVIDER_LABELS, ...customProviderLabels }),
+    [customProviderLabels],
+  );
   const displayData = useMemo(() => trimToDisplayRange(data, weeks), [data, weeks]);
   const displayRange = useMemo(
     () => getCalendarRange(displayData.range.to, weeks),
@@ -88,6 +104,10 @@ export function ActivityGraph({
     [displayData, displayRange, providerLabels],
   );
 
+  const aiMetricLabel = useMemo(
+    () => resolveMetricLabel(displayData, aiProvider),
+    [displayData, aiProvider],
+  );
   const generatedLabel = displayData.generatedAt
     ? "Updated " + formatDateLong(displayData.generatedAt.slice(0, 10))
     : "Demo data";
@@ -96,7 +116,12 @@ export function ActivityGraph({
   const rootClassName = ["activity-graph", className].filter(Boolean).join(" ");
 
   return (
-    <section className={rootClassName} style={style} {...sectionProps}>
+    <section
+      className={rootClassName}
+      data-activity-theme={theme === "system" ? undefined : theme}
+      style={style}
+      {...sectionProps}
+    >
       <div className="activity-graph__card">
         <div className="activity-graph__heading">
           <h2>{title}</h2>
@@ -129,7 +154,7 @@ export function ActivityGraph({
               summaryLabel="GitHub activity summary"
             />
             <ActivityGreen
-              theme="light"
+              theme={resolvedTheme}
               data={githubView.days}
               to={displayData.range.to}
               weeks={weeks}
@@ -177,22 +202,22 @@ export function ActivityGraph({
 
               <ActivitySummaryStats
                 summary={aiView.summary}
-                metricLabel="tokens"
-                summaryLabel={providerLabels[aiProvider] + " token activity summary"}
+                metricLabel={aiMetricLabel}
+                summaryLabel={providerLabels[aiProvider] + " activity summary"}
               />
 
               <div className="activity-graph__ai-visuals">
                 <ActivityGreen
-                  theme="light"
+                  theme={resolvedTheme}
                   data={aiView.days}
                   to={displayData.range.to}
                   weeks={weeks}
                   fitToWidth={false}
-                  title={providerLabels[aiProvider] + " AI token activity"}
-                  unitLabel="tokens"
+                  title={providerLabels[aiProvider] + " AI activity"}
+                  unitLabel={aiMetricLabel}
                   showSummary={false}
                   baseColor={PROVIDER_COLORS[aiProvider]}
-                  tooltip={(day) => formatCompactNumber(day.value) + " tokens"}
+                  tooltip={(day) => formatCompactNumber(day.value) + " " + aiMetricLabel}
                   cell={13}
                 />
 
@@ -213,6 +238,43 @@ export function ActivityGraph({
   );
 }
 
+/** Providers that share the dataset's dominant unit, in display order. */
+function metricProviders(data: ActivityDataset, metric: string): ActivityProvider[] {
+  return PROVIDER_ORDER.filter(
+    (provider) => (data.ai?.metrics?.[provider] ?? "tokens") === metric,
+  );
+}
+
+function dominantMetric(data: ActivityDataset): string {
+  return data.ai?.metric ?? "tokens";
+}
+
+function resolveMetricLabel(data: ActivityDataset, view: AiActivityView): string {
+  const metric =
+    view === "all" ? dominantMetric(data) : data.ai?.metrics?.[view] ?? dominantMetric(data);
+  return METRIC_LABELS[metric] ?? metric;
+}
+
+/**
+ * Follows the OS setting when the host asks for "system". The server render
+ * and first client render both use "light", so hydration matches; the effect
+ * corrects it immediately after mount.
+ */
+function useResolvedTheme(theme: ActivityTheme): "light" | "dark" {
+  const [systemTheme, setSystemTheme] = useState<"light" | "dark">("light");
+
+  useEffect(() => {
+    if (theme !== "system" || typeof window === "undefined" || !window.matchMedia) return;
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
+    const sync = () => setSystemTheme(query.matches ? "dark" : "light");
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, [theme]);
+
+  return theme === "system" ? systemTheme : theme;
+}
+
 function buildActivityView(
   days: Array<{ date: string; value: number; known?: boolean }>,
   range: { from: string; to: string },
@@ -220,20 +282,25 @@ function buildActivityView(
   return { days, summary: summarizeActivity(days, range) };
 }
 
+/**
+ * Only providers sharing the dominant unit can be summed into one ring —
+ * adding Cursor's message count to a token total would be meaningless.
+ */
 function buildAiProviderBreakdown(
   data: ActivityDataset,
   range: { from: string; to: string },
   providerLabels: Record<AiActivityView, string>,
 ) {
-  const totals = Object.fromEntries(PROVIDER_ORDER.map((provider) => [provider, 0])) as Record<ActivityProvider, number>;
+  const providers = metricProviders(data, dominantMetric(data));
+  const totals = Object.fromEntries(providers.map((provider) => [provider, 0])) as Record<ActivityProvider, number>;
   (data.ai?.days ?? []).forEach((day) => {
     if (day.date < range.from || day.date > range.to) return;
-    PROVIDER_ORDER.forEach((provider) => {
+    providers.forEach((provider) => {
       totals[provider] += day.providers?.[provider] ?? 0;
     });
   });
 
-  return PROVIDER_ORDER.map((provider) => ({
+  return providers.map((provider) => ({
     id: provider,
     label: providerLabels[provider],
     value: totals[provider],
@@ -248,8 +315,9 @@ function buildAiActivityView(
 ): ActivityView {
   const daysByDate = new Map((data.ai?.days ?? []).map((day) => [day.date, day]));
   const coverage = provider === "all" ? null : getProviderCoverage(data, provider);
+  const aggregated = metricProviders(data, dominantMetric(data));
   const allCoverage = provider === "all"
-    ? PROVIDER_ORDER.map((candidate) => getProviderCoverage(data, candidate))
+    ? aggregated.map((candidate) => getProviderCoverage(data, candidate))
     : [];
   const days: Array<{ date: string; value: number; known?: boolean }> = [];
 
@@ -268,7 +336,14 @@ function buildAiActivityView(
 
     days.push({
       date,
-      value: provider === "all" ? getAllAiTokens(day) : day?.providers?.[provider] ?? 0,
+      value:
+        provider === "all"
+          ? sumAiProviderTokens(
+              Object.fromEntries(
+                aggregated.map((candidate) => [candidate, day?.providers?.[candidate] ?? 0]),
+              ),
+            )
+          : day?.providers?.[provider] ?? 0,
       known,
     });
   }

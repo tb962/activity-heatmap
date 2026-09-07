@@ -63,17 +63,21 @@ export function ActivityGreen({ theme = "dark", data = [], to, weeks, minDays = 
         (grid.unknownDays > 0
             ? " Data not available for " + grid.unknownDays + " days."
             : "");
-    return (_jsxs("div", { className: "activity-graph__calendar", "data-theme": theme, role: "img", "aria-label": ariaLabel, children: [showSummary && (title || grid.total > 0) ? (_jsxs("div", { className: "activity-graph__calendar-summary", children: [title ? _jsx("h4", { children: title }) : _jsx("span", {}), _jsx("span", { children: grid.total + " " + unitLabel + " in period" })] })) : null, _jsxs("div", { ref: gridRef, className: "activity-graph__calendar-grid", children: [_jsx("div", { className: "activity-graph__month-row", children: grid.monthLabels.map((month) => (_jsx("span", { style: { left: month.column * columnWidth }, children: month.text }, month.text + "-" + month.column))) }), _jsx("div", { className: "activity-graph__weeks", style: { gap }, children: grid.weeks.map((week, columnIndex) => (_jsx("div", { className: "activity-graph__week", style: { gap }, children: week.map((day) => (_jsx(ActivityCell, { day: day, maximum: grid.maximum, size: measurements.cell, colors: colors, unitLabel: unitLabel, tooltip: tooltip, tooltipAlign: columnIndex === 0
+    return (
+    // `role="img"` would make the whole subtree presentational, hiding the
+    // per-day cells that are keyboard focusable. A labelled group keeps both
+    // the summary and the individual cells reachable.
+    _jsxs("div", { className: "activity-graph__calendar", "data-theme": theme, role: "group", "aria-label": ariaLabel, children: [showSummary && (title || grid.total > 0) ? (_jsxs("div", { className: "activity-graph__calendar-summary", children: [title ? _jsx("h4", { children: title }) : _jsx("span", {}), _jsx("span", { children: grid.total + " " + unitLabel + " in period" })] })) : null, _jsxs("div", { ref: gridRef, className: "activity-graph__calendar-grid", children: [_jsx("div", { className: "activity-graph__month-row", children: grid.monthLabels.map((month) => (_jsx("span", { style: { left: month.column * columnWidth }, children: month.text }, month.text + "-" + month.column))) }), _jsx("div", { className: "activity-graph__weeks", style: { gap }, children: grid.weeks.map((week, columnIndex) => (_jsx("div", { className: "activity-graph__week", style: { gap }, children: week.map((day) => (_jsx(ActivityCell, { day: day, thresholds: grid.thresholds, size: measurements.cell, colors: colors, unitLabel: unitLabel, tooltip: tooltip, tooltipAlign: columnIndex === 0
                                     ? "start"
                                     : columnIndex === grid.weeks.length - 1
                                         ? "end"
                                         : "center" }, day.key))) }, columnIndex))) }), _jsxs("div", { className: "activity-graph__legend", children: [_jsx("span", { children: "less" }), _jsx(LegendCell, { color: colors.empty }), colors.levels.map((color) => _jsx(LegendCell, { color: color }, color)), _jsx("span", { children: "more" }), grid.unknownDays > 0 ? (_jsxs(_Fragment, { children: [_jsx("span", { className: "activity-graph__legend-na", children: "n/a" }), _jsx(LegendCell, { color: colors.empty, opacity: 0.5 })] })) : null] })] })] }));
 }
-function ActivityCell({ day, maximum, size, colors, unitLabel, tooltip, tooltipAlign, }) {
+function ActivityCell({ day, thresholds, size, colors, unitLabel, tooltip, tooltipAlign, }) {
     const tooltipId = useId();
     const tooltipTimer = useRef(null);
     const [tooltipVisible, setTooltipVisible] = useState(false);
-    const level = activityLevel(day.value, maximum);
+    const level = activityLevel(day.value, thresholds);
     const dateLabel = day.date.toLocaleDateString("en-US", {
         weekday: "long",
         day: "numeric",
@@ -137,13 +141,17 @@ function buildActivityPalette(theme, baseColor) {
     const base = baseColor ? parseHex(baseColor) : null;
     if (!base)
         return palette;
+    // Faint shades have to fade toward the surface behind them, so a dark card
+    // ramps down to near-black instead of washing out to white.
+    const ground = theme === "dark" ? { r: 22, g: 21, b: 19 } : { r: 255, g: 255, b: 255 };
+    const peak = theme === "dark" ? { r: 255, g: 255, b: 255 } : { r: 0, g: 0, b: 0 };
     return {
         ...palette,
         levels: [
-            mixRgb(base, { r: 255, g: 255, b: 255 }, 0.8),
-            mixRgb(base, { r: 255, g: 255, b: 255 }, 0.5),
-            mixRgb(base, { r: 255, g: 255, b: 255 }, 0.22),
-            mixRgb(base, { r: 0, g: 0, b: 0 }, 0.1),
+            mixRgb(base, ground, 0.8),
+            mixRgb(base, ground, 0.5),
+            mixRgb(base, ground, 0.22),
+            mixRgb(base, peak, 0.1),
         ],
     };
 }

@@ -1,9 +1,32 @@
+/*
+ * Every colour is a token so the card can follow the host page's theme.
+ * Light values live here on the bare selector; the dark overrides below
+ * redefine only the tokens, once for `prefers-color-scheme` (guarded so an
+ * explicit light choice still wins) and once for an explicit dark choice.
+ */
 .activity-graph {
   --activity-graph-ink: #1a1815;
   --activity-graph-muted: #817b73;
+  --activity-graph-faint: #b3ada5;
   --activity-graph-line: #e8e2da;
   --activity-graph-card: #ffffff;
+  --activity-graph-surface: #f7f5f1;
+  --activity-graph-code: #f4f1ec;
+  --activity-graph-accent: #b94f31;
   --activity-graph-empty: #ebedf0;
+  --activity-graph-calendar-text: #57606a;
+  --activity-graph-calendar-strong: #1f2328;
+  --activity-graph-on-accent: #ffffff;
+  --activity-graph-card-shadow: 0 22px 60px rgba(26, 24, 21, 0.08);
+  --activity-graph-toggle-shadow: 0 3px 10px rgba(26, 24, 21, 0.12);
+  --activity-graph-tooltip-bg: rgba(26, 24, 21, 0.97);
+  --activity-graph-tooltip-border: rgba(255, 255, 255, 0.1);
+  --activity-graph-tooltip-text: #ffffff;
+  --activity-graph-tooltip-muted: rgba(255, 255, 255, 0.62);
+  --activity-graph-tooltip-shadow: 0 12px 28px rgba(26, 24, 21, 0.18);
+  --activity-graph-popover-bg: rgba(255, 255, 255, 0.97);
+  --activity-graph-popover-border: rgba(26, 24, 21, 0.1);
+  --activity-graph-popover-shadow: 0 12px 28px rgba(26, 24, 21, 0.12);
   --activity-graph-github-1: #dcefe0;
   --activity-graph-github-2: #b5dcbf;
   --activity-graph-github-3: #7fbe8d;
@@ -28,7 +51,7 @@
   border: 1px solid var(--activity-graph-line);
   border-radius: clamp(1.35rem, 3vw, 2rem);
   background: var(--activity-graph-card);
-  box-shadow: 0 22px 60px rgba(26, 24, 21, 0.08);
+  box-shadow: var(--activity-graph-card-shadow);
   animation: activity-graph-enter 580ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
@@ -62,7 +85,7 @@
 .activity-graph__freshness span {
   display: inline-block;
   margin: 0 0.38rem;
-  color: #b3ada5;
+  color: var(--activity-graph-faint);
 }
 
 .activity-graph__columns {
@@ -114,7 +137,7 @@
 }
 
 .activity-graph__source a:hover {
-  color: #b94f31;
+  color: var(--activity-graph-accent);
 }
 
 .activity-graph__empty-note {
@@ -127,7 +150,7 @@
 .activity-graph__empty-note code {
   padding: 0.08rem 0.25rem;
   border-radius: 0.25rem;
-  background: #f4f1ec;
+  background: var(--activity-graph-code);
   font-size: 0.95em;
 }
 
@@ -138,7 +161,7 @@
   padding: 0.12rem 0.2rem;
   border: 1px solid var(--activity-graph-line);
   border-radius: 999px;
-  background: #f7f5f1;
+  background: var(--activity-graph-surface);
 }
 
 .activity-graph__provider-button {
@@ -157,8 +180,8 @@
 
 .activity-graph__provider-button[data-active="true"] {
   background: var(--activity-provider-color);
-  color: #ffffff;
-  box-shadow: 0 3px 10px rgba(26, 24, 21, 0.12);
+  color: var(--activity-graph-on-accent);
+  box-shadow: var(--activity-graph-toggle-shadow);
 }
 
 .activity-graph__provider-button:focus-visible {
@@ -214,7 +237,7 @@
 
 .activity-graph__calendar {
   min-width: 0;
-  color: #57606a;
+  color: var(--activity-graph-calendar-text);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -228,14 +251,14 @@
 
 .activity-graph__calendar-summary h4 {
   margin: 0;
-  color: #1f2328;
+  color: var(--activity-graph-calendar-strong);
   font-size: 11.5px;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 
 .activity-graph__calendar-summary span {
-  color: #57606a;
+  color: var(--activity-graph-calendar-text);
   font-size: 10px;
   font-variant-numeric: tabular-nums;
 }
@@ -253,7 +276,7 @@
 .activity-graph__month-row span {
   position: absolute;
   top: 0;
-  color: #57606a;
+  color: var(--activity-graph-calendar-text);
   font-size: 9px;
   font-weight: 600;
   white-space: nowrap;
@@ -314,11 +337,11 @@
   width: max-content;
   max-width: min(15rem, calc(100vw - 2rem));
   padding: 0.5rem 0.65rem 0.55rem;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--activity-graph-tooltip-border);
   border-radius: 0.72rem;
-  background: rgba(26, 24, 21, 0.97);
-  box-shadow: 0 12px 28px rgba(26, 24, 21, 0.18);
-  color: #ffffff;
+  background: var(--activity-graph-tooltip-bg);
+  box-shadow: var(--activity-graph-tooltip-shadow);
+  color: var(--activity-graph-tooltip-text);
   font-size: 0.62rem;
   line-height: 1.25;
   pointer-events: none;
@@ -342,11 +365,11 @@
 }
 
 .activity-graph__tooltip-date {
-  color: rgba(255, 255, 255, 0.62);
+  color: var(--activity-graph-tooltip-muted);
 }
 
 .activity-graph__tooltip-detail {
-  color: #ffffff;
+  color: var(--activity-graph-tooltip-text);
   font-variant-numeric: tabular-nums;
 }
 
@@ -356,7 +379,7 @@
   justify-content: flex-start;
   gap: 0.35rem;
   margin-top: 0.5rem;
-  color: #57606a;
+  color: var(--activity-graph-calendar-text);
   font-size: 9px;
 }
 
@@ -447,10 +470,10 @@
   gap: 0.35rem;
   width: 7.8rem;
   padding: 0.5rem 0.58rem;
-  border: 1px solid rgba(26, 24, 21, 0.1);
+  border: 1px solid var(--activity-graph-popover-border);
   border-radius: 0.85rem;
-  background: rgba(255, 255, 255, 0.97);
-  box-shadow: 0 12px 28px rgba(26, 24, 21, 0.12);
+  background: var(--activity-graph-popover-bg);
+  box-shadow: var(--activity-graph-popover-shadow);
   color: var(--activity-graph-muted);
   font-size: 0.6rem;
   line-height: 1.1;
@@ -513,4 +536,68 @@
   .activity-graph__cell,
   .activity-graph__donut-segment,
   .activity-graph__provider-button { animation: none; transition: none; }
+}
+
+/*
+ * Dark theme. The media query is skipped when the host explicitly asks for
+ * light, so `data-activity-theme="light"` always wins on a dark OS.
+ */
+@media (prefers-color-scheme: dark) {
+  .activity-graph:not([data-activity-theme="light"]) {
+  --activity-graph-ink: #e8e6e3;
+  --activity-graph-muted: #9a938a;
+  --activity-graph-faint: #6b645c;
+  --activity-graph-line: #2a2724;
+  --activity-graph-card: #171614;
+  --activity-graph-surface: #201e1b;
+  --activity-graph-code: #242220;
+  --activity-graph-accent: #e08363;
+  --activity-graph-empty: #26231f;
+  --activity-graph-calendar-text: #9a938a;
+  --activity-graph-calendar-strong: #e8e6e3;
+  --activity-graph-on-accent: #ffffff;
+  --activity-graph-card-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+  --activity-graph-toggle-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  --activity-graph-tooltip-bg: rgba(240, 238, 235, 0.97);
+  --activity-graph-tooltip-border: rgba(0, 0, 0, 0.12);
+  --activity-graph-tooltip-text: #171614;
+  --activity-graph-tooltip-muted: rgba(23, 22, 20, 0.62);
+  --activity-graph-tooltip-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  --activity-graph-popover-bg: rgba(32, 30, 27, 0.97);
+  --activity-graph-popover-border: rgba(255, 255, 255, 0.12);
+  --activity-graph-popover-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  --activity-graph-github-1: #16341f;
+  --activity-graph-github-2: #1f5b32;
+  --activity-graph-github-3: #2f8a4a;
+  --activity-graph-github-4: #4cc266;
+  }
+}
+
+.activity-graph[data-activity-theme="dark"] {
+  --activity-graph-ink: #e8e6e3;
+  --activity-graph-muted: #9a938a;
+  --activity-graph-faint: #6b645c;
+  --activity-graph-line: #2a2724;
+  --activity-graph-card: #171614;
+  --activity-graph-surface: #201e1b;
+  --activity-graph-code: #242220;
+  --activity-graph-accent: #e08363;
+  --activity-graph-empty: #26231f;
+  --activity-graph-calendar-text: #9a938a;
+  --activity-graph-calendar-strong: #e8e6e3;
+  --activity-graph-on-accent: #ffffff;
+  --activity-graph-card-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+  --activity-graph-toggle-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  --activity-graph-tooltip-bg: rgba(240, 238, 235, 0.97);
+  --activity-graph-tooltip-border: rgba(0, 0, 0, 0.12);
+  --activity-graph-tooltip-text: #171614;
+  --activity-graph-tooltip-muted: rgba(23, 22, 20, 0.62);
+  --activity-graph-tooltip-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  --activity-graph-popover-bg: rgba(32, 30, 27, 0.97);
+  --activity-graph-popover-border: rgba(255, 255, 255, 0.12);
+  --activity-graph-popover-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  --activity-graph-github-1: #16341f;
+  --activity-graph-github-2: #1f5b32;
+  --activity-graph-github-3: #2f8a4a;
+  --activity-graph-github-4: #4cc266;
 }

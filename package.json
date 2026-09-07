@@ -29,12 +29,16 @@
     "activity.config.example.json",
     "data/activity.example.json"
   ],
-  "sideEffects": ["**/*.css"],
+  "sideEffects": [
+    "**/*.css"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "npm run build",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
-    "test": "node --test"
+    "test": "node --test",
+    "pretest": "npm run build",
+    "preview": "node scripts/build-preview.mjs"
   },
   "peerDependencies": {
     "react": ">=18.2.0",
@@ -44,5 +48,33 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "typescript": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tb962/activity-heatmap.git"
+  },
+  "homepage": "https://github.com/tb962/activity-heatmap#readme",
+  "bugs": {
+    "url": "https://github.com/tb962/activity-heatmap/issues"
+  },
+  "author": "tb962",
+  "keywords": [
+    "activity",
+    "heatmap",
+    "contribution-graph",
+    "github",
+    "portfolio",
+    "react",
+    "claude-code",
+    "codex",
+    "cursor",
+    "ai-usage",
+    "developer-portfolio"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

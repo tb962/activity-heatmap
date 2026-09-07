@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -67,11 +67,12 @@ async function initProject(flags) {
     output: "data/activity.json",
     historyOutput: "data/ai-activity-history.json",
     openUsageUrl: "http://127.0.0.1:6736/v1/usage",
+    cursorMetric: "messages",
     sources: {
       github: true,
       codex: true,
       claude: true,
-      cursor: false,
+      cursor: true,
       openUsage: true,
     },
   };
@@ -95,7 +96,9 @@ async function doctor(flags) {
   console.log("  Claude logs: " + (report.sources.claudeLogs ? "found" : "not found"));
   console.log("  Codex logs: " + (report.sources.codexLogs ? "found" : "not found"));
   console.log("  OpenUsage: " + report.sources.openUsageUrl);
-  console.log("  Cursor export: " + (report.sources.cursorFile ? "found" : "not configured"));
+  console.log("  Cursor database: " + (report.sources.cursorDb || "not found"));
+  console.log("  Cursor metric: " + report.cursorMetric);
+  console.log("  Cursor export override: " + (report.sources.cursorFile ? "found" : "not configured"));
   console.log("  output: " + report.outputPath);
 }
 
@@ -112,7 +115,9 @@ async function sync(flags) {
       report.range.to,
   );
   Object.entries(report.scans).forEach(([provider, scan]) => {
-    console.log("  " + provider + ": " + scan.days.size + " active days from " + scan.files + " log files");
+    const unit = scan.metric || "tokens";
+    const origin = scan.files === undefined ? "the Cursor database" : scan.files + " log files";
+    console.log("  " + provider + ": " + scan.days.size + " active days of " + unit + " from " + origin);
   });
   console.log("  wrote " + report.outputPath);
   if (report.warnings.length > 0) {
@@ -132,7 +137,8 @@ Commands:
 
 Environment overrides:
   GITHUB_USERNAME, GITHUB_TOKEN, ACTIVITY_TIMEZONE,
-  ACTIVITY_RANGE_DAYS, AI_HISTORY_RETENTION_DAYS, OPENUSAGE_URL
+  ACTIVITY_RANGE_DAYS, AI_HISTORY_RETENTION_DAYS, OPENUSAGE_URL,
+  ACTIVITY_CURSOR_METRIC (messages | edits)
 
 The sync reads aggregate token metadata only. It never writes prompts or raw logs.
 `);

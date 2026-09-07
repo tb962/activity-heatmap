@@ -136,7 +136,10 @@ export function ActivityGreen({
       : "");
 
   return (
-    <div className="activity-graph__calendar" data-theme={theme} role="img" aria-label={ariaLabel}>
+    // `role="img"` would make the whole subtree presentational, hiding the
+    // per-day cells that are keyboard focusable. A labelled group keeps both
+    // the summary and the individual cells reachable.
+    <div className="activity-graph__calendar" data-theme={theme} role="group" aria-label={ariaLabel}>
       {showSummary && (title || grid.total > 0) ? (
         <div className="activity-graph__calendar-summary">
           {title ? <h4>{title}</h4> : <span />}
@@ -163,7 +166,7 @@ export function ActivityGreen({
                 <ActivityCell
                   key={day.key}
                   day={day}
-                  maximum={grid.maximum}
+                  thresholds={grid.thresholds}
                   size={measurements.cell}
                   colors={colors}
                   unitLabel={unitLabel}
@@ -200,7 +203,7 @@ export function ActivityGreen({
 
 function ActivityCell({
   day,
-  maximum,
+  thresholds,
   size,
   colors,
   unitLabel,
@@ -208,7 +211,7 @@ function ActivityCell({
   tooltipAlign,
 }: {
   day: ActivityGridDay;
-  maximum: number;
+  thresholds: number[];
   size: number;
   colors: ActivityPalette;
   unitLabel: string;
@@ -218,7 +221,7 @@ function ActivityCell({
   const tooltipId = useId();
   const tooltipTimer = useRef<number | null>(null);
   const [tooltipVisible, setTooltipVisible] = useState(false);
-  const level = activityLevel(day.value, maximum);
+  const level = activityLevel(day.value, thresholds);
   const dateLabel = day.date.toLocaleDateString("en-US", {
     weekday: "long",
     day: "numeric",
@@ -315,13 +318,18 @@ function buildActivityPalette(theme: ActivityGreenTheme, baseColor?: string): Ac
   const base = baseColor ? parseHex(baseColor) : null;
   if (!base) return palette;
 
+  // Faint shades have to fade toward the surface behind them, so a dark card
+  // ramps down to near-black instead of washing out to white.
+  const ground = theme === "dark" ? { r: 22, g: 21, b: 19 } : { r: 255, g: 255, b: 255 };
+  const peak = theme === "dark" ? { r: 255, g: 255, b: 255 } : { r: 0, g: 0, b: 0 };
+
   return {
     ...palette,
     levels: [
-      mixRgb(base, { r: 255, g: 255, b: 255 }, 0.8),
-      mixRgb(base, { r: 255, g: 255, b: 255 }, 0.5),
-      mixRgb(base, { r: 255, g: 255, b: 255 }, 0.22),
-      mixRgb(base, { r: 0, g: 0, b: 0 }, 0.1),
+      mixRgb(base, ground, 0.8),
+      mixRgb(base, ground, 0.5),
+      mixRgb(base, ground, 0.22),
+      mixRgb(base, peak, 0.1),
     ],
   };
 }

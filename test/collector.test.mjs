@@ -78,3 +78,44 @@ test("sync combines local logs, OpenUsage, and GitHub into activity.v1", async (
 
   await rm(cwd, { recursive: true, force: true });
 });
+
+test("cursor activity never leaks into a day's token total", async () => {
+  const cwd = await mkdtemp(path.join(tmpdir(), "activity-graph-units-"));
+  await writeFile(
+    path.join(cwd, "activity.config.json"),
+    JSON.stringify({
+      timezone: "UTC",
+      rangeDays: 10,
+      historyDays: 20,
+      output: "data/activity.json",
+      historyOutput: "data/history.json",
+      cursorFile: "cursor.json",
+      sources: { github: false, claude: true, codex: true, cursor: true, openUsage: false },
+    }),
+  );
+  // A Cursor export standing in for the workspace database.
+  await writeFile(
+    path.join(cwd, "cursor.json"),
+    JSON.stringify({ days: [{ date: "2026-09-07", tokens: 42 }] }),
+  );
+
+  await syncActivity({
+    cwd,
+    homeDir: fixtureHome,
+    env: {},
+    now: new Date("2026-09-07T12:00:00.000Z"),
+    logger: { warn() {} },
+  });
+
+  const data = JSON.parse(await readFile(path.join(cwd, "data/activity.json"), "utf8"));
+  const day = data.ai.days.find((entry) => entry.date === "2026-09-07");
+
+  assert.equal(day.providers.cursor, 42);
+  assert.equal(day.providers.codex, 1000);
+  // totalTokens covers the token providers only, so Cursor's 42 is excluded.
+  assert.equal(day.totalTokens, 1000);
+  assert.equal(data.ai.metrics.cursor, "messages");
+  assert.equal(data.ai.metrics.codex, "tokens");
+
+  await rm(cwd, { recursive: true, force: true });
+});

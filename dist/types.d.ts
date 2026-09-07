@@ -39,11 +39,18 @@ export type ActivityDataset = {
         available?: boolean;
         source?: string;
         days?: AiActivityDay[];
+        /**
+         * Unit per provider. Claude and Codex report "tokens"; Cursor reports
+         * "messages" or "edits" because it does not persist token counts locally.
+         */
+        metrics?: Partial<Record<ActivityProvider, string>>;
         sources?: Partial<Record<ActivityProvider, string>>;
         coverage?: Partial<Record<ActivityProvider, AiActivityCoverage>>;
     };
 };
 export type AiActivityView = "all" | ActivityProvider;
+/** "system" follows the visitor's prefers-color-scheme. */
+export type ActivityTheme = "light" | "dark" | "system";
 export type ActivityGraphProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
     /** Pass a dataset to replace the built-in demo data. */
     data?: ActivityDataset;
@@ -57,6 +64,8 @@ export type ActivityGraphProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
     defaultAiProvider?: AiActivityView;
     /** Override labels without changing the data schema. */
     providerLabels?: Partial<Record<AiActivityView, string>>;
+    /** Force a palette, or follow the visitor's OS setting. Defaults to "system". */
+    theme?: ActivityTheme;
     /** Override the outer card style without replacing the package CSS. */
     style?: CSSProperties;
 };

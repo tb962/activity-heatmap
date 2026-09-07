@@ -34,7 +34,7 @@
     "build": "tsc -p tsconfig.build.json",
     "prepublishOnly": "npm run build",
     "typecheck": "tsc -p tsconfig.build.json --noEmit",
-    "test": "node --test test/**/*.test.mjs"
+    "test": "node --test"
   },
   "peerDependencies": {
     "react": ">=18.2.0",

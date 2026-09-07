@@ -12,7 +12,10 @@ import {
   type ActivityGridPoint,
 } from "./activity-grid.js";
 
-type ActivityGreenTheme = "dark" | "light";
+type ActivityCalendarTheme = "dark" | "light";
+
+/** How each day is drawn. "rounded" matches the familiar contribution grid. */
+export type ActivityCellShape = "rounded" | "square" | "circle";
 
 type ActivityRange = {
   from: string;
@@ -28,8 +31,8 @@ type ActivityPalette = {
   strongText: string;
 };
 
-export type ActivityGreenProps = {
-  theme?: ActivityGreenTheme;
+export type ActivityCalendarProps = {
+  theme?: ActivityCalendarTheme;
   data?: ActivityGridPoint[];
   to?: Date | string;
   weeks?: number;
@@ -40,12 +43,25 @@ export type ActivityGreenProps = {
   unitLabel?: string;
   showSummary?: boolean;
   baseColor?: string;
+  /** Replace the whole shade ramp instead of deriving it from baseColor. */
+  levelColors?: string[];
+  /** Colour of a day with no activity. */
+  emptyColor?: string;
   tooltip?: (day: ActivityGridDay) => string;
   cell?: number;
+  gap?: number;
+  shape?: ActivityCellShape;
+  showLegend?: boolean;
   onRangeChange?: (range: ActivityRange) => void;
 };
 
-const PALETTE: Record<ActivityGreenTheme, ActivityPalette> = {
+const SHAPE_RADIUS: Record<ActivityCellShape, string> = {
+  rounded: "22%",
+  square: "0",
+  circle: "50%",
+};
+
+const PALETTE: Record<ActivityCalendarTheme, ActivityPalette> = {
   dark: {
     empty: "#1b1f23",
     levels: ["#0e4429", "#006d32", "#26a641", "#39d353"],
@@ -62,7 +78,7 @@ const PALETTE: Record<ActivityGreenTheme, ActivityPalette> = {
 
 const TOOLTIP_DELAY = 300;
 
-export function ActivityGreen({
+export function ActivityCalendar({
   theme = "dark",
   data = [],
   to,
@@ -74,12 +90,19 @@ export function ActivityGreen({
   unitLabel = "events",
   showSummary = true,
   baseColor,
+  levelColors,
+  emptyColor,
   tooltip,
   cell = 13,
+  gap = 3,
+  shape = "rounded",
+  showLegend = true,
   onRangeChange,
-}: ActivityGreenProps) {
-  const colors = useMemo(() => buildActivityPalette(theme, baseColor), [theme, baseColor]);
-  const gap = 3;
+}: ActivityCalendarProps) {
+  const colors = useMemo(
+    () => buildActivityPalette(theme, baseColor, levelColors, emptyColor),
+    [theme, baseColor, levelColors, emptyColor],
+  );
   const gridRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
 
@@ -169,6 +192,7 @@ export function ActivityGreen({
                   thresholds={grid.thresholds}
                   size={measurements.cell}
                   colors={colors}
+                  shape={shape}
                   unitLabel={unitLabel}
                   tooltip={tooltip}
                   tooltipAlign={
@@ -184,18 +208,22 @@ export function ActivityGreen({
           ))}
         </div>
 
-        <div className="activity-graph__legend">
-          <span>less</span>
-          <LegendCell color={colors.empty} />
-          {colors.levels.map((color) => <LegendCell key={color} color={color} />)}
-          <span>more</span>
-          {grid.unknownDays > 0 ? (
-            <>
-              <span className="activity-graph__legend-na">n/a</span>
-              <LegendCell color={colors.empty} opacity={0.5} />
-            </>
-          ) : null}
-        </div>
+        {showLegend ? (
+          <div className="activity-graph__legend">
+            <span>less</span>
+            <LegendCell color={colors.empty} shape={shape} />
+            {colors.levels.map((color) => (
+              <LegendCell key={color} color={color} shape={shape} />
+            ))}
+            <span>more</span>
+            {grid.unknownDays > 0 ? (
+              <>
+                <span className="activity-graph__legend-na">n/a</span>
+                <LegendCell color={colors.empty} shape={shape} opacity={0.5} />
+              </>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </div>
   );
@@ -206,6 +234,7 @@ function ActivityCell({
   thresholds,
   size,
   colors,
+  shape,
   unitLabel,
   tooltip,
   tooltipAlign,
@@ -214,6 +243,7 @@ function ActivityCell({
   thresholds: number[];
   size: number;
   colors: ActivityPalette;
+  shape: ActivityCellShape;
   unitLabel: string;
   tooltip?: (day: ActivityGridDay) => string;
   tooltipAlign: "start" | "center" | "end";
@@ -277,6 +307,7 @@ function ActivityCell({
           ? colors.empty
           : colors.levels[level - 1],
     opacity: day.inside && !day.known ? 0.5 : 1,
+    borderRadius: SHAPE_RADIUS[shape],
   };
 
   return (
@@ -309,14 +340,39 @@ function ActivityCell({
   );
 }
 
-function LegendCell({ color, opacity = 1 }: { color: string; opacity?: number }) {
-  return <span className="activity-graph__legend-cell" style={{ background: color, opacity }} aria-hidden="true" />;
+function LegendCell({
+  color,
+  shape,
+  opacity = 1,
+}: {
+  color: string;
+  shape: ActivityCellShape;
+  opacity?: number;
+}) {
+  return (
+    <span
+      className="activity-graph__legend-cell"
+      style={{ background: color, opacity, borderRadius: SHAPE_RADIUS[shape] }}
+      aria-hidden="true"
+    />
+  );
 }
 
-function buildActivityPalette(theme: ActivityGreenTheme, baseColor?: string): ActivityPalette {
+function buildActivityPalette(
+  theme: ActivityCalendarTheme,
+  baseColor?: string,
+  levelColors?: string[],
+  emptyColor?: string,
+): ActivityPalette {
   const palette = PALETTE[theme] ?? PALETTE.light;
+  const empty = emptyColor ?? palette.empty;
+  // An explicit ramp wins over anything derived from a single base colour.
+  if (levelColors && levelColors.length > 0) {
+    return { ...palette, empty, levels: levelColors };
+  }
+
   const base = baseColor ? parseHex(baseColor) : null;
-  if (!base) return palette;
+  if (!base) return { ...palette, empty };
 
   // Faint shades have to fade toward the surface behind them, so a dark card
   // ramps down to near-black instead of washing out to white.
@@ -325,6 +381,7 @@ function buildActivityPalette(theme: ActivityGreenTheme, baseColor?: string): Ac
 
   return {
     ...palette,
+    empty,
     levels: [
       mixRgb(base, ground, 0.8),
       mixRgb(base, ground, 0.5),
@@ -360,4 +417,4 @@ function mixRgb(
   );
 }
 
-export default ActivityGreen;
+export default ActivityCalendar;

@@ -30,10 +30,18 @@ body{margin:0;background:${background};font:14px ui-sans-serif,system-ui,-apple-
 await mkdir(path.join(root, "examples"), { recursive: true });
 await mkdir(path.join(root, "docs"), { recursive: true });
 
+// The README shots show the card variant, since that is the assembled look.
+// The component's own default is bare — see examples/playground.html.
+const CARD_PROPS = {
+  title: "The work behind the work.",
+  showMeta: true,
+  card: true,
+};
+
 // One page showing both themes, for eyeballing in a browser.
 const combined = THEMES.map(([theme, background]) =>
   `<div style="background:${background}">${renderToStaticMarkup(
-    React.createElement(ActivityGraph, { theme }),
+    React.createElement(ActivityGraph, { ...CARD_PROPS, theme }),
   )}</div>`,
 ).join("");
 await writeFile(path.join(root, "examples/preview.html"), page(combined, "#ffffff"), "utf8");
@@ -41,7 +49,10 @@ console.log("wrote examples/preview.html");
 
 const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 for (const [theme, background] of THEMES) {
-  const html = page(renderToStaticMarkup(React.createElement(ActivityGraph, { theme })), background);
+  const html = page(
+    renderToStaticMarkup(React.createElement(ActivityGraph, { ...CARD_PROPS, theme })),
+    background,
+  );
   const temporary = path.join(root, "docs", "_" + theme + ".html");
   await writeFile(temporary, html, "utf8");
   try {

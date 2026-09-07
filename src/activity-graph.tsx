@@ -16,8 +16,8 @@ import {
   summarizeActivity,
   trimToDisplayRange,
 } from "./activity.js";
-import { ActivityGreen } from "./activity-green.js";
-import { MonoRoundedDonut } from "./mono-rounded-donut.js";
+import { ActivityCalendar } from "./activity-calendar.js";
+import { ProviderDonut } from "./provider-donut.js";
 import { DEFAULT_ACTIVITY_DATA } from "./demo-data.js";
 import type {
   ActivityDataset,
@@ -47,7 +47,8 @@ const METRIC_LABELS: Record<string, string> = {
   edits: "edited lines",
 };
 
-const PROVIDER_COLORS: Record<AiActivityView, string> = {
+const PROVIDER_COLORS: Record<AiActivityView | "github", string> = {
+  github: "#216e39",
   all: "#2563eb",
   claude: "#d97757",
   codex: "#10a37f",
@@ -61,12 +62,25 @@ type ActivityView = {
 
 export function ActivityGraph({
   data = DEFAULT_ACTIVITY_DATA,
-  title = "The work behind the work.",
+  title,
   weeks = 20,
   showAi = true,
   defaultAiProvider = "all",
   providerLabels: customProviderLabels,
   theme = "system",
+  showMeta = false,
+  card = false,
+  showColumnLabels = true,
+  showStats = true,
+  showLegend = true,
+  showDonut = true,
+  showProviderToggle = true,
+  cellShape = "rounded",
+  cellSize = 13,
+  cellGap = 3,
+  colors: customColors,
+  levelColors,
+  emptyColor,
   className,
   style,
   ...sectionProps
@@ -77,6 +91,10 @@ export function ActivityGraph({
   const providerLabels = useMemo(
     () => ({ ...DEFAULT_PROVIDER_LABELS, ...customProviderLabels }),
     [customProviderLabels],
+  );
+  const colors = useMemo(
+    () => ({ ...PROVIDER_COLORS, ...customColors }),
+    [customColors],
   );
   const displayData = useMemo(() => trimToDisplayRange(data, weeks), [data, weeks]);
   const displayRange = useMemo(
@@ -101,8 +119,8 @@ export function ActivityGraph({
   );
 
   const aiProviderBreakdown = useMemo(
-    () => buildAiProviderBreakdown(displayData, displayRange, providerLabels),
-    [displayData, displayRange, providerLabels],
+    () => buildAiProviderBreakdown(displayData, displayRange, providerLabels, colors),
+    [displayData, displayRange, providerLabels, colors],
   );
 
   const aiMetricLabel = useMemo(
@@ -114,7 +132,14 @@ export function ActivityGraph({
     : "Demo data";
   const githubSource = displayData.github.source ?? "github.com/" + (displayData.github.username ?? "your-handle");
   const aiConfigured = Boolean(displayData.ai && displayData.ai.available !== false);
-  const rootClassName = ["activity-graph", className].filter(Boolean).join(" ");
+  const rootClassName = [
+    "activity-graph",
+    card ? "activity-graph--card" : null,
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+  const hasHeading = title !== undefined || showMeta;
 
   return (
     <section
@@ -123,38 +148,46 @@ export function ActivityGraph({
       style={style}
       {...sectionProps}
     >
-      <div className="activity-graph__card">
-        <div className="activity-graph__heading">
-          <h2>{title}</h2>
-          <span className="activity-graph__freshness">
-            {generatedLabel}
-            <span aria-hidden="true">•</span>
-            Last {weeks} weeks
-          </span>
-        </div>
+      <div className="activity-graph__surface">
+        {hasHeading ? (
+          <div className="activity-graph__heading">
+            {title !== undefined ? <h2>{title}</h2> : <span />}
+            {showMeta ? (
+              <span className="activity-graph__freshness">
+                {generatedLabel}
+                <span aria-hidden="true">•</span>
+                Last {weeks} weeks
+              </span>
+            ) : null}
+          </div>
+        ) : null}
 
         <div className={showAi ? "activity-graph__columns" : "activity-graph__columns activity-graph__columns--single"}>
           <div className="activity-graph__column">
-            <div className="activity-graph__column-heading">
-              <div>
-                <p className="activity-graph__column-label">GitHub</p>
-                <p className="activity-graph__source">
-                  Source:{" "}
-                  {displayData.github.href ? (
-                    <a href={displayData.github.href} target="_blank" rel="noreferrer">
-                      {githubSource}
-                    </a>
-                  ) : githubSource}
-                </p>
+            {showColumnLabels ? (
+              <div className="activity-graph__column-heading">
+                <div>
+                  <p className="activity-graph__column-label">GitHub</p>
+                  <p className="activity-graph__source">
+                    Source:{" "}
+                    {displayData.github.href ? (
+                      <a href={displayData.github.href} target="_blank" rel="noreferrer">
+                        {githubSource}
+                      </a>
+                    ) : githubSource}
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : null}
 
-            <ActivitySummaryStats
-              summary={githubView.summary}
-              metricLabel="contributions"
-              summaryLabel="GitHub activity summary"
-            />
-            <ActivityGreen
+            {showStats ? (
+              <ActivitySummaryStats
+                summary={githubView.summary}
+                metricLabel="contributions"
+                summaryLabel="GitHub activity summary"
+              />
+            ) : null}
+            <ActivityCalendar
               theme={resolvedTheme}
               data={githubView.days}
               to={displayData.range.to}
@@ -163,52 +196,66 @@ export function ActivityGraph({
               title="GitHub activity"
               unitLabel="contributions"
               showSummary={false}
-              cell={13}
+              showLegend={showLegend}
+              baseColor={customColors?.github}
+              levelColors={levelColors}
+              emptyColor={emptyColor}
+              cell={cellSize}
+              gap={cellGap}
+              shape={cellShape}
             />
           </div>
 
           {showAi ? (
             <div
               className="activity-graph__column activity-graph__column--ai"
-              style={{ "--activity-provider-color": PROVIDER_COLORS[aiProvider] } as CSSProperties}
+              style={{ "--activity-provider-color": colors[aiProvider] } as CSSProperties}
             >
-              <div className="activity-graph__column-heading">
-                <div className="activity-graph__column-heading-copy">
-                  <p className="activity-graph__column-label">AI activity</p>
-                  <p className="activity-graph__source">
-                    Source: {displayData.ai?.source ?? displayData.ai?.sources?.[aiProvider === "all" ? "claude" : aiProvider] ?? "No AI activity source connected"}
-                  </p>
-                  {!aiConfigured ? (
-                    <p className="activity-graph__empty-note">
-                      Pass <code>data.ai</code> to replace the demo ledger.
-                    </p>
+              {showColumnLabels || showProviderToggle ? (
+                <div className="activity-graph__column-heading">
+                  {showColumnLabels ? (
+                    <div className="activity-graph__column-heading-copy">
+                      <p className="activity-graph__column-label">AI activity</p>
+                      <p className="activity-graph__source">
+                        Source: {displayData.ai?.source ?? displayData.ai?.sources?.[aiProvider === "all" ? "claude" : aiProvider] ?? "No AI activity source connected"}
+                      </p>
+                      {!aiConfigured ? (
+                        <p className="activity-graph__empty-note">
+                          Pass <code>data.ai</code> to replace the demo ledger.
+                        </p>
+                      ) : null}
+                    </div>
+                  ) : null}
+
+                  {showProviderToggle ? (
+                    <div className="activity-graph__provider-toggle" role="group" aria-label="Choose AI activity view">
+                      {(["all", ...PROVIDER_ORDER] as AiActivityView[]).map((provider) => (
+                        <button
+                          type="button"
+                          className="activity-graph__provider-button"
+                          data-active={aiProvider === provider ? "true" : "false"}
+                          aria-pressed={aiProvider === provider}
+                          key={provider}
+                          onClick={() => setAiProvider(provider)}
+                        >
+                          {providerLabels[provider]}
+                        </button>
+                      ))}
+                    </div>
                   ) : null}
                 </div>
+              ) : null}
 
-                <div className="activity-graph__provider-toggle" role="group" aria-label="Choose AI activity view">
-                  {(["all", ...PROVIDER_ORDER] as AiActivityView[]).map((provider) => (
-                    <button
-                      type="button"
-                      className="activity-graph__provider-button"
-                      data-active={aiProvider === provider ? "true" : "false"}
-                      aria-pressed={aiProvider === provider}
-                      key={provider}
-                      onClick={() => setAiProvider(provider)}
-                    >
-                      {providerLabels[provider]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <ActivitySummaryStats
-                summary={aiView.summary}
-                metricLabel={aiMetricLabel}
-                summaryLabel={providerLabels[aiProvider] + " activity summary"}
-              />
+              {showStats ? (
+                <ActivitySummaryStats
+                  summary={aiView.summary}
+                  metricLabel={aiMetricLabel}
+                  summaryLabel={providerLabels[aiProvider] + " activity summary"}
+                />
+              ) : null}
 
               <div className="activity-graph__ai-visuals">
-                <ActivityGreen
+                <ActivityCalendar
                   theme={resolvedTheme}
                   data={aiView.days}
                   to={displayData.range.to}
@@ -217,19 +264,26 @@ export function ActivityGraph({
                   title={providerLabels[aiProvider] + " AI activity"}
                   unitLabel={aiMetricLabel}
                   showSummary={false}
-                  baseColor={PROVIDER_COLORS[aiProvider]}
+                  showLegend={showLegend}
+                  baseColor={colors[aiProvider]}
+                  levelColors={levelColors}
+                  emptyColor={emptyColor}
                   tooltip={(day) => formatCompactNumber(day.value) + " " + aiMetricLabel}
-                  cell={13}
+                  cell={cellSize}
+                  gap={cellGap}
+                  shape={cellShape}
                 />
 
-                <div className="activity-graph__ai-breakdown">
-                  <MonoRoundedDonut
-                    data={aiProviderBreakdown}
-                    valueFormatter={formatCompactNumber}
-                    centerLabel="all tokens"
-                    ariaLabel="AI token breakdown by provider"
-                  />
-                </div>
+                {showDonut ? (
+                  <div className="activity-graph__ai-breakdown">
+                    <ProviderDonut
+                      data={aiProviderBreakdown}
+                      valueFormatter={formatCompactNumber}
+                      centerLabel={"all " + aiMetricLabel}
+                      ariaLabel="AI activity breakdown by provider"
+                    />
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -291,6 +345,7 @@ function buildAiProviderBreakdown(
   data: ActivityDataset,
   range: { from: string; to: string },
   providerLabels: Record<AiActivityView, string>,
+  colors: Record<AiActivityView, string>,
 ) {
   const providers = metricProviders(data, dominantMetric(data));
   const totals = Object.fromEntries(providers.map((provider) => [provider, 0])) as Record<ActivityProvider, number>;
@@ -305,7 +360,7 @@ function buildAiProviderBreakdown(
     id: provider,
     label: providerLabels[provider],
     value: totals[provider],
-    color: PROVIDER_COLORS[provider],
+    color: colors[provider],
   }));
 }
 

@@ -1,4 +1,6 @@
-import type { CSSProperties, HTMLAttributes } from "react";
+import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
+
+import type { ActivityCellShape } from "./activity-calendar.js";
 
 export const ACTIVITY_PROVIDERS = ["claude", "codex", "cursor"] as const;
 
@@ -61,11 +63,14 @@ export type AiActivityView = "all" | ActivityProvider;
 /** "system" follows the visitor's prefers-color-scheme. */
 export type ActivityTheme = "light" | "dark" | "system";
 
+export type { ActivityCellShape };
+
+/** Per-view colour overrides. Keys not given fall back to the defaults. */
+export type ActivityColors = Partial<Record<AiActivityView | "github", string>>;
+
 export type ActivityGraphProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
   /** Pass a dataset to replace the built-in demo data. */
   data?: ActivityDataset;
-  /** Editorial heading above both charts. */
-  title?: string;
   /** Number of calendar columns to render. Defaults to 20 weeks. */
   weeks?: number;
   /** Hide the AI column when a GitHub-only chart is wanted. */
@@ -76,6 +81,43 @@ export type ActivityGraphProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
   providerLabels?: Partial<Record<AiActivityView, string>>;
   /** Force a palette, or follow the visitor's OS setting. Defaults to "system". */
   theme?: ActivityTheme;
-  /** Override the outer card style without replacing the package CSS. */
+
+  /*
+   * Chrome. Everything here is off by default: the package ships the charts,
+   * not a layout. Turn pieces on to build up a card, or leave them off and
+   * wrap the graph in your own.
+   */
+  /** Heading above the charts. Nothing is rendered when omitted. */
+  title?: ReactNode;
+  /** "Updated <date> · Last N weeks" line beside the heading. */
+  showMeta?: boolean;
+  /** Bordered, padded, shadowed container around the charts. */
+  card?: boolean;
+  /** Per-column "GITHUB" / "AI ACTIVITY" labels and their source lines. */
+  showColumnLabels?: boolean;
+  /** The totals row above each calendar. */
+  showStats?: boolean;
+  /** The less/more colour key under each calendar. */
+  showLegend?: boolean;
+  /** The provider breakdown ring beside the AI calendar. */
+  showDonut?: boolean;
+  /** The All/Claude/Codex/Cursor switcher. */
+  showProviderToggle?: boolean;
+
+  /* Appearance. */
+  /** Day-cell shape. Defaults to "rounded". */
+  cellShape?: ActivityCellShape;
+  /** Day-cell size in pixels. Defaults to 13. */
+  cellSize?: number;
+  /** Gap between day cells in pixels. Defaults to 3. */
+  cellGap?: number;
+  /** Base colour per view, e.g. { github: "#2f81f7", claude: "#d97757" }. */
+  colors?: ActivityColors;
+  /** Replace the derived shade ramp entirely, darkest last. */
+  levelColors?: string[];
+  /** Colour of a day with no activity. */
+  emptyColor?: string;
+
+  /** Override the outer style without replacing the package CSS. */
   style?: CSSProperties;
 };

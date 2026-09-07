@@ -2,15 +2,15 @@
 
 import { useMemo, useState } from "react";
 
-export type MonoRoundedDonutDatum = {
+export type ProviderDonutDatum = {
   id: string;
   label: string;
   value: number;
   color: string;
 };
 
-type MonoRoundedDonutProps = {
-  data: MonoRoundedDonutDatum[];
+type ProviderDonutProps = {
+  data: ProviderDonutDatum[];
   valueFormatter?: (value: number) => string;
   centerLabel?: string;
   ariaLabel?: string;
@@ -23,12 +23,12 @@ const STROKE_WIDTH = 13;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const SEGMENT_GAP = 17;
 
-export function MonoRoundedDonut({
+export function ProviderDonut({
   data,
   valueFormatter = (value) => String(value),
   centerLabel = "all tokens",
   ariaLabel = "Activity breakdown",
-}: MonoRoundedDonutProps) {
+}: ProviderDonutProps) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   const total = data.reduce((sum, item) => sum + normalizeValue(item.value), 0);
   const segments = useMemo(() => buildSegments(data, total), [data, total]);
@@ -96,7 +96,7 @@ export function MonoRoundedDonut({
   );
 }
 
-function buildSegments(data: MonoRoundedDonutDatum[], total: number) {
+function buildSegments(data: ProviderDonutDatum[], total: number) {
   const activeSegments = data.filter((item) => normalizeValue(item.value) > 0).length;
   const gap = activeSegments > 1 ? SEGMENT_GAP : 0;
   let offset = 0;

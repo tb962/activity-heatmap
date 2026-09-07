@@ -7,7 +7,7 @@ const RADIUS = 35;
 const STROKE_WIDTH = 13;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 const SEGMENT_GAP = 17;
-export function MonoRoundedDonut({ data, valueFormatter = (value) => String(value), centerLabel = "all tokens", ariaLabel = "Activity breakdown", }) {
+export function ProviderDonut({ data, valueFormatter = (value) => String(value), centerLabel = "all tokens", ariaLabel = "Activity breakdown", }) {
     const [hoveredId, setHoveredId] = useState(null);
     const total = data.reduce((sum, item) => sum + normalizeValue(item.value), 0);
     const segments = useMemo(() => buildSegments(data, total), [data, total]);
@@ -39,4 +39,4 @@ function buildSegments(data, total) {
 function normalizeValue(value) {
     return Number.isFinite(value) && value > 0 ? value : 0;
 }
-//# sourceMappingURL=mono-rounded-donut.js.map
+//# sourceMappingURL=provider-donut.js.map

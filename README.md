@@ -7,6 +7,9 @@ and Cursor — on one card.
 ![The card in light mode](docs/preview-light.png)
 ![The card in dark mode](docs/preview-dark.png)
 
+*The screenshots show the optional card chrome. Out of the box the component
+renders just the charts — see [Layout](#layout).*
+
 It ships as:
 
 1. A React component that renders the GitHub + AI activity card.
@@ -72,9 +75,90 @@ Without a `data` prop, `<ActivityGraph />` renders the built-in deterministic
 demo. For GitHub-only sites, use `showAi={false}` or pass a dataset without an
 `ai` section.
 
+## Layout
+
+The package ships charts, not a layout. By default there is no card, no
+border, no heading and no meta line — just the grids, so the component drops
+into your own design without anything to override:
+
+```tsx
+<ActivityGraph data={activity} />
+```
+
+Every piece of chrome is opt-in. To rebuild the card in the screenshots:
+
+```tsx
+<ActivityGraph
+  data={activity}
+  title="The work behind the work."
+  card
+  showMeta
+/>
+```
+
+| Prop | Default | Adds |
+| --- | --- | --- |
+| `title` | none | Heading above the charts. Accepts any node. |
+| `showMeta` | `false` | "Updated <date> · Last N weeks" |
+| `card` | `false` | Border, padding, background, shadow |
+| `showColumnLabels` | `true` | "GITHUB" / "AI ACTIVITY" and source lines |
+| `showStats` | `true` | Totals row above each calendar |
+| `showLegend` | `true` | less/more colour key |
+| `showDonut` | `true` | Provider breakdown ring |
+| `showProviderToggle` | `true` | All/Claude/Codex/Cursor switcher |
+| `showAi` | `true` | The AI column |
+
+Strip it back to a single bare grid:
+
+```tsx
+<ActivityGraph
+  data={activity}
+  showAi={false}
+  showColumnLabels={false}
+  showStats={false}
+  showLegend={false}
+/>
+```
+
+## Appearance
+
+```tsx
+<ActivityGraph
+  data={activity}
+  cellShape="circle"
+  cellSize={15}
+  cellGap={4}
+  colors={{ github: "#8b5cf6", claude: "#d97757" }}
+/>
+```
+
+| Prop | Default | Notes |
+| --- | --- | --- |
+| `cellShape` | `"rounded"` | `"rounded"`, `"square"` or `"circle"` |
+| `cellSize` | `13` | Pixels per day cell |
+| `cellGap` | `3` | Pixels between cells |
+| `colors` | — | Base colour per view: `github`, `all`, `claude`, `codex`, `cursor`. Each is a hex seed; the four shades are derived from it. |
+| `levelColors` | — | Replace the derived ramp outright, palest first |
+| `emptyColor` | — | Colour of a day with no activity |
+
+Anything not covered by a prop is a CSS custom property — see
+[Theming](#theming).
+
+### Playground
+
+Every control above, wired to a live graph with a copy-paste snippet:
+
+```bash
+npm run build
+npx serve .        # or any static server
+```
+
+Then open `examples/playground.html`. It needs a network connection, because
+it pulls React from a CDN rather than bundling one.
+
 ## Theming
 
-The card follows the visitor's OS setting by default. Force one palette with
+The graph follows the visitor's OS setting by default. Force one palette with
 the `theme` prop:
 
 ```tsx
@@ -84,7 +168,7 @@ the `theme` prop:
 ```
 
 Every colour is a CSS custom property on `.activity-graph`, so you can restyle
-the card without forking the stylesheet:
+it without forking the stylesheet:
 
 ```css
 .activity-graph {
@@ -266,6 +350,9 @@ To regenerate the screenshots above and a browsable preview page:
 ```bash
 npm run preview
 ```
+
+`examples/playground.html` is the interactive version; it reads `dist/`
+directly, so run `npm run build` first and serve the folder over HTTP.
 
 ## License
 

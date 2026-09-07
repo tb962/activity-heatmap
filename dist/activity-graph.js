@@ -2,8 +2,8 @@
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useMemo, useState } from "react";
 import { addDays, dateKey, formatCompactNumber, formatDateLong, formatExactNumber, getCalendarRange, getProviderCoverage, isDateCovered, parseDateKey, sumAiProviderTokens, summarizeActivity, trimToDisplayRange, } from "./activity.js";
-import { ActivityGreen } from "./activity-green.js";
-import { MonoRoundedDonut } from "./mono-rounded-donut.js";
+import { ActivityCalendar } from "./activity-calendar.js";
+import { ProviderDonut } from "./provider-donut.js";
 import { DEFAULT_ACTIVITY_DATA } from "./demo-data.js";
 const PROVIDER_ORDER = ["claude", "codex", "cursor"];
 const DEFAULT_PROVIDER_LABELS = {
@@ -23,16 +23,18 @@ const METRIC_LABELS = {
     edits: "edited lines",
 };
 const PROVIDER_COLORS = {
+    github: "#216e39",
     all: "#2563eb",
     claude: "#d97757",
     codex: "#10a37f",
     cursor: "#181818",
 };
-export function ActivityGraph({ data = DEFAULT_ACTIVITY_DATA, title = "The work behind the work.", weeks = 20, showAi = true, defaultAiProvider = "all", providerLabels: customProviderLabels, theme = "system", className, style, ...sectionProps }) {
+export function ActivityGraph({ data = DEFAULT_ACTIVITY_DATA, title, weeks = 20, showAi = true, defaultAiProvider = "all", providerLabels: customProviderLabels, theme = "system", showMeta = false, card = false, showColumnLabels = true, showStats = true, showLegend = true, showDonut = true, showProviderToggle = true, cellShape = "rounded", cellSize = 13, cellGap = 3, colors: customColors, levelColors, emptyColor, className, style, ...sectionProps }) {
     const [aiProvider, setAiProvider] = useState(defaultAiProvider);
     const resolvedTheme = useResolvedTheme(theme);
     // Memoised so downstream useMemo deps stay stable across renders.
     const providerLabels = useMemo(() => ({ ...DEFAULT_PROVIDER_LABELS, ...customProviderLabels }), [customProviderLabels]);
+    const colors = useMemo(() => ({ ...PROVIDER_COLORS, ...customColors }), [customColors]);
     const displayData = useMemo(() => trimToDisplayRange(data, weeks), [data, weeks]);
     const displayRange = useMemo(() => getCalendarRange(displayData.range.to, weeks), [displayData.range.to, weeks]);
     const githubView = useMemo(() => ({
@@ -40,15 +42,22 @@ export function ActivityGraph({ data = DEFAULT_ACTIVITY_DATA, title = "The work 
         summary: summarizeActivity(displayData.github.days.map((day) => ({ date: day.date, value: day.contributions })), displayRange),
     }), [displayData.github.days, displayRange]);
     const aiView = useMemo(() => buildAiActivityView(displayData, aiProvider, displayRange), [aiProvider, displayData, displayRange]);
-    const aiProviderBreakdown = useMemo(() => buildAiProviderBreakdown(displayData, displayRange, providerLabels), [displayData, displayRange, providerLabels]);
+    const aiProviderBreakdown = useMemo(() => buildAiProviderBreakdown(displayData, displayRange, providerLabels, colors), [displayData, displayRange, providerLabels, colors]);
     const aiMetricLabel = useMemo(() => resolveMetricLabel(displayData, aiProvider), [displayData, aiProvider]);
     const generatedLabel = displayData.generatedAt
         ? "Updated " + formatDateLong(displayData.generatedAt.slice(0, 10))
         : "Demo data";
     const githubSource = displayData.github.source ?? "github.com/" + (displayData.github.username ?? "your-handle");
     const aiConfigured = Boolean(displayData.ai && displayData.ai.available !== false);
-    const rootClassName = ["activity-graph", className].filter(Boolean).join(" ");
-    return (_jsx("section", { className: rootClassName, "data-activity-theme": theme === "system" ? undefined : theme, style: style, ...sectionProps, children: _jsxs("div", { className: "activity-graph__card", children: [_jsxs("div", { className: "activity-graph__heading", children: [_jsx("h2", { children: title }), _jsxs("span", { className: "activity-graph__freshness", children: [generatedLabel, _jsx("span", { "aria-hidden": "true", children: "\u2022" }), "Last ", weeks, " weeks"] })] }), _jsxs("div", { className: showAi ? "activity-graph__columns" : "activity-graph__columns activity-graph__columns--single", children: [_jsxs("div", { className: "activity-graph__column", children: [_jsx("div", { className: "activity-graph__column-heading", children: _jsxs("div", { children: [_jsx("p", { className: "activity-graph__column-label", children: "GitHub" }), _jsxs("p", { className: "activity-graph__source", children: ["Source:", " ", displayData.github.href ? (_jsx("a", { href: displayData.github.href, target: "_blank", rel: "noreferrer", children: githubSource })) : githubSource] })] }) }), _jsx(ActivitySummaryStats, { summary: githubView.summary, metricLabel: "contributions", summaryLabel: "GitHub activity summary" }), _jsx(ActivityGreen, { theme: resolvedTheme, data: githubView.days, to: displayData.range.to, weeks: weeks, fitToWidth: false, title: "GitHub activity", unitLabel: "contributions", showSummary: false, cell: 13 })] }), showAi ? (_jsxs("div", { className: "activity-graph__column activity-graph__column--ai", style: { "--activity-provider-color": PROVIDER_COLORS[aiProvider] }, children: [_jsxs("div", { className: "activity-graph__column-heading", children: [_jsxs("div", { className: "activity-graph__column-heading-copy", children: [_jsx("p", { className: "activity-graph__column-label", children: "AI activity" }), _jsxs("p", { className: "activity-graph__source", children: ["Source: ", displayData.ai?.source ?? displayData.ai?.sources?.[aiProvider === "all" ? "claude" : aiProvider] ?? "No AI activity source connected"] }), !aiConfigured ? (_jsxs("p", { className: "activity-graph__empty-note", children: ["Pass ", _jsx("code", { children: "data.ai" }), " to replace the demo ledger."] })) : null] }), _jsx("div", { className: "activity-graph__provider-toggle", role: "group", "aria-label": "Choose AI activity view", children: ["all", ...PROVIDER_ORDER].map((provider) => (_jsx("button", { type: "button", className: "activity-graph__provider-button", "data-active": aiProvider === provider ? "true" : "false", "aria-pressed": aiProvider === provider, onClick: () => setAiProvider(provider), children: providerLabels[provider] }, provider))) })] }), _jsx(ActivitySummaryStats, { summary: aiView.summary, metricLabel: aiMetricLabel, summaryLabel: providerLabels[aiProvider] + " activity summary" }), _jsxs("div", { className: "activity-graph__ai-visuals", children: [_jsx(ActivityGreen, { theme: resolvedTheme, data: aiView.days, to: displayData.range.to, weeks: weeks, fitToWidth: false, title: providerLabels[aiProvider] + " AI activity", unitLabel: aiMetricLabel, showSummary: false, baseColor: PROVIDER_COLORS[aiProvider], tooltip: (day) => formatCompactNumber(day.value) + " " + aiMetricLabel, cell: 13 }), _jsx("div", { className: "activity-graph__ai-breakdown", children: _jsx(MonoRoundedDonut, { data: aiProviderBreakdown, valueFormatter: formatCompactNumber, centerLabel: "all tokens", ariaLabel: "AI token breakdown by provider" }) })] })] })) : null] })] }) }));
+    const rootClassName = [
+        "activity-graph",
+        card ? "activity-graph--card" : null,
+        className,
+    ]
+        .filter(Boolean)
+        .join(" ");
+    const hasHeading = title !== undefined || showMeta;
+    return (_jsx("section", { className: rootClassName, "data-activity-theme": theme === "system" ? undefined : theme, style: style, ...sectionProps, children: _jsxs("div", { className: "activity-graph__surface", children: [hasHeading ? (_jsxs("div", { className: "activity-graph__heading", children: [title !== undefined ? _jsx("h2", { children: title }) : _jsx("span", {}), showMeta ? (_jsxs("span", { className: "activity-graph__freshness", children: [generatedLabel, _jsx("span", { "aria-hidden": "true", children: "\u2022" }), "Last ", weeks, " weeks"] })) : null] })) : null, _jsxs("div", { className: showAi ? "activity-graph__columns" : "activity-graph__columns activity-graph__columns--single", children: [_jsxs("div", { className: "activity-graph__column", children: [showColumnLabels ? (_jsx("div", { className: "activity-graph__column-heading", children: _jsxs("div", { children: [_jsx("p", { className: "activity-graph__column-label", children: "GitHub" }), _jsxs("p", { className: "activity-graph__source", children: ["Source:", " ", displayData.github.href ? (_jsx("a", { href: displayData.github.href, target: "_blank", rel: "noreferrer", children: githubSource })) : githubSource] })] }) })) : null, showStats ? (_jsx(ActivitySummaryStats, { summary: githubView.summary, metricLabel: "contributions", summaryLabel: "GitHub activity summary" })) : null, _jsx(ActivityCalendar, { theme: resolvedTheme, data: githubView.days, to: displayData.range.to, weeks: weeks, fitToWidth: false, title: "GitHub activity", unitLabel: "contributions", showSummary: false, showLegend: showLegend, baseColor: customColors?.github, levelColors: levelColors, emptyColor: emptyColor, cell: cellSize, gap: cellGap, shape: cellShape })] }), showAi ? (_jsxs("div", { className: "activity-graph__column activity-graph__column--ai", style: { "--activity-provider-color": colors[aiProvider] }, children: [showColumnLabels || showProviderToggle ? (_jsxs("div", { className: "activity-graph__column-heading", children: [showColumnLabels ? (_jsxs("div", { className: "activity-graph__column-heading-copy", children: [_jsx("p", { className: "activity-graph__column-label", children: "AI activity" }), _jsxs("p", { className: "activity-graph__source", children: ["Source: ", displayData.ai?.source ?? displayData.ai?.sources?.[aiProvider === "all" ? "claude" : aiProvider] ?? "No AI activity source connected"] }), !aiConfigured ? (_jsxs("p", { className: "activity-graph__empty-note", children: ["Pass ", _jsx("code", { children: "data.ai" }), " to replace the demo ledger."] })) : null] })) : null, showProviderToggle ? (_jsx("div", { className: "activity-graph__provider-toggle", role: "group", "aria-label": "Choose AI activity view", children: ["all", ...PROVIDER_ORDER].map((provider) => (_jsx("button", { type: "button", className: "activity-graph__provider-button", "data-active": aiProvider === provider ? "true" : "false", "aria-pressed": aiProvider === provider, onClick: () => setAiProvider(provider), children: providerLabels[provider] }, provider))) })) : null] })) : null, showStats ? (_jsx(ActivitySummaryStats, { summary: aiView.summary, metricLabel: aiMetricLabel, summaryLabel: providerLabels[aiProvider] + " activity summary" })) : null, _jsxs("div", { className: "activity-graph__ai-visuals", children: [_jsx(ActivityCalendar, { theme: resolvedTheme, data: aiView.days, to: displayData.range.to, weeks: weeks, fitToWidth: false, title: providerLabels[aiProvider] + " AI activity", unitLabel: aiMetricLabel, showSummary: false, showLegend: showLegend, baseColor: colors[aiProvider], levelColors: levelColors, emptyColor: emptyColor, tooltip: (day) => formatCompactNumber(day.value) + " " + aiMetricLabel, cell: cellSize, gap: cellGap, shape: cellShape }), showDonut ? (_jsx("div", { className: "activity-graph__ai-breakdown", children: _jsx(ProviderDonut, { data: aiProviderBreakdown, valueFormatter: formatCompactNumber, centerLabel: "all " + aiMetricLabel, ariaLabel: "AI activity breakdown by provider" }) })) : null] })] })) : null] })] }) }));
 }
 /** Providers that share the dataset's dominant unit, in display order. */
 function metricProviders(data, metric) {
@@ -86,7 +95,7 @@ function buildActivityView(days, range) {
  * Only providers sharing the dominant unit can be summed into one ring —
  * adding Cursor's message count to a token total would be meaningless.
  */
-function buildAiProviderBreakdown(data, range, providerLabels) {
+function buildAiProviderBreakdown(data, range, providerLabels, colors) {
     const providers = metricProviders(data, dominantMetric(data));
     const totals = Object.fromEntries(providers.map((provider) => [provider, 0]));
     (data.ai?.days ?? []).forEach((day) => {
@@ -100,7 +109,7 @@ function buildAiProviderBreakdown(data, range, providerLabels) {
         id: provider,
         label: providerLabels[provider],
         value: totals[provider],
-        color: PROVIDER_COLORS[provider],
+        color: colors[provider],
     }));
 }
 function buildAiActivityView(data, provider, range) {

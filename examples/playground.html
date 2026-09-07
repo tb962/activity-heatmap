@@ -1,0 +1,325 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Activity Heatmap — playground</title>
+<link rel="stylesheet" href="../src/styles.css" />
+<style>
+  :root {
+    color-scheme: light dark;
+    --pg-bg: #faf9f7;
+    --pg-panel: #ffffff;
+    --pg-line: #e6e1d9;
+    --pg-ink: #1a1815;
+    --pg-muted: #7d766d;
+    --pg-accent: #2563eb;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-pg-theme="light"]) {
+      --pg-bg: #0f0e0d; --pg-panel: #171614; --pg-line: #2a2724;
+      --pg-ink: #e8e6e3; --pg-muted: #9a938a;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--pg-bg); color: var(--pg-ink);
+    font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .pg-shell { display: grid; grid-template-columns: 290px 1fr; min-height: 100vh; }
+  @media (max-width: 900px) { .pg-shell { grid-template-columns: 1fr; } }
+
+  .pg-panel {
+    padding: 20px; border-right: 1px solid var(--pg-line);
+    background: var(--pg-panel); overflow-y: auto; max-height: 100vh;
+  }
+  @media (max-width: 900px) { .pg-panel { max-height: none; border-right: 0; border-bottom: 1px solid var(--pg-line); } }
+  .pg-panel h1 { margin: 0 0 2px; font-size: 15px; letter-spacing: -0.01em; }
+  .pg-panel p.pg-sub { margin: 0 0 18px; color: var(--pg-muted); font-size: 12px; }
+
+  .pg-group { margin-bottom: 18px; }
+  .pg-group > h2 {
+    margin: 0 0 8px; font-size: 10px; font-weight: 700;
+    letter-spacing: 0.09em; text-transform: uppercase; color: var(--pg-muted);
+  }
+  .pg-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 0; }
+  .pg-row label { font-size: 13px; cursor: pointer; }
+  .pg-row output { color: var(--pg-muted); font-size: 12px; font-variant-numeric: tabular-nums; min-width: 34px; text-align: right; }
+  input[type="range"] { width: 118px; accent-color: var(--pg-accent); }
+  input[type="color"] {
+    width: 30px; height: 22px; padding: 0; border: 1px solid var(--pg-line);
+    border-radius: 5px; background: none; cursor: pointer;
+  }
+  input[type="checkbox"] { accent-color: var(--pg-accent); width: 15px; height: 15px; cursor: pointer; }
+  input[type="text"], select {
+    width: 150px; padding: 4px 7px; border: 1px solid var(--pg-line); border-radius: 6px;
+    background: var(--pg-bg); color: var(--pg-ink); font: inherit; font-size: 12px;
+  }
+  .pg-seg { display: flex; gap: 3px; padding: 3px; border: 1px solid var(--pg-line); border-radius: 8px; }
+  .pg-seg button {
+    flex: 1; padding: 4px 6px; border: 0; border-radius: 5px; background: none;
+    color: var(--pg-muted); font: inherit; font-size: 12px; cursor: pointer;
+  }
+  .pg-seg button[data-on="true"] { background: var(--pg-accent); color: #fff; }
+  .pg-reset {
+    width: 100%; margin-top: 4px; padding: 7px; border: 1px solid var(--pg-line);
+    border-radius: 8px; background: none; color: var(--pg-muted); font: inherit;
+    font-size: 12px; cursor: pointer;
+  }
+  .pg-reset:hover { color: var(--pg-ink); }
+
+  .pg-stage { display: flex; flex-direction: column; gap: 18px; padding: 26px; min-width: 0; }
+  .pg-canvas { padding: 20px; border: 1px dashed var(--pg-line); border-radius: 12px; min-width: 0; }
+  .pg-canvas[data-bg="light"] { background: #faf9f7; }
+  .pg-canvas[data-bg="dark"] { background: #0f0e0d; }
+  /* "system" must track the OS, or the card sits on the wrong ground. */
+  .pg-canvas[data-bg="system"] { background: #faf9f7; }
+  @media (prefers-color-scheme: dark) {
+    .pg-canvas[data-bg="system"] { background: #0f0e0d; }
+  }
+  .pg-hint { margin: 0 0 12px; color: var(--pg-muted); font-size: 11px; }
+  .pg-code {
+    margin: 0; padding: 14px 16px; border: 1px solid var(--pg-line); border-radius: 12px;
+    background: var(--pg-panel); color: var(--pg-ink); overflow-x: auto;
+    font: 12px/1.65 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre;
+  }
+  .pg-code b { color: var(--pg-accent); font-weight: 600; }
+  .pg-boot { padding: 26px; color: var(--pg-muted); }
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@19.2.0",
+    "react/jsx-runtime": "https://esm.sh/react@19.2.0/jsx-runtime",
+    "react-dom": "https://esm.sh/react-dom@19.2.0",
+    "react-dom/client": "https://esm.sh/react-dom@19.2.0/client"
+  }
+}
+</script>
+</head>
+<body>
+<div id="root"><div class="pg-boot">Loading the playground… (needs a network connection for React)</div></div>
+
+<script type="module">
+import React, { useState, useMemo } from "react";
+import { createRoot } from "react-dom/client";
+import { ActivityGraph } from "../dist/index.js";
+
+const h = React.createElement;
+
+const DEFAULTS = {
+  theme: "system",
+  weeks: 20,
+  cellShape: "rounded",
+  cellSize: 13,
+  cellGap: 3,
+  showAi: true,
+  card: false,
+  title: "",
+  showMeta: false,
+  showColumnLabels: true,
+  showStats: true,
+  showLegend: true,
+  showDonut: true,
+  showProviderToggle: true,
+  github: "#216e39",
+  all: "#2563eb",
+  claude: "#d97757",
+  codex: "#10a37f",
+  cursor: "#181818",
+};
+
+/** `htmlFor` matters here: without it, clicking a label does nothing. */
+function Row({ label, htmlFor, children }) {
+  return h("div", { className: "pg-row" },
+    h("label", { htmlFor }, label),
+    children,
+  );
+}
+
+function Toggle({ state, set, name, label }) {
+  const id = "pg-" + name;
+  return h(Row, { label, htmlFor: id },
+    h("input", {
+      id,
+      type: "checkbox",
+      checked: state[name],
+      onChange: (e) => set(name, e.target.checked),
+    }),
+  );
+}
+
+function Slider({ state, set, name, label, min, max, suffix = "" }) {
+  const id = "pg-" + name;
+  return h(Row, { label, htmlFor: id },
+    h("div", { style: { display: "flex", alignItems: "center", gap: "8px" } },
+      h("input", {
+        id,
+        type: "range", min, max, value: state[name],
+        onChange: (e) => set(name, Number(e.target.value)),
+      }),
+      h("output", null, state[name] + suffix),
+    ),
+  );
+}
+
+function Segmented({ value, options, onChange }) {
+  return h("div", { className: "pg-seg" },
+    options.map((option) =>
+      h("button", {
+        key: option,
+        type: "button",
+        "data-on": value === option ? "true" : "false",
+        onClick: () => onChange(option),
+      }, option),
+    ),
+  );
+}
+
+function Swatch({ state, set, name, label }) {
+  const id = "pg-color-" + name;
+  return h(Row, { label, htmlFor: id },
+    h("div", { style: { display: "flex", alignItems: "center", gap: "8px" } },
+      h("output", null, state[name]),
+      h("input", {
+        id,
+        type: "color",
+        value: state[name],
+        onChange: (e) => set(name, e.target.value),
+      }),
+    ),
+  );
+}
+
+/** Renders the JSX a consumer would write for the current settings. */
+function snippet(state) {
+  const props = [];
+  const add = (key, value) => props.push("  " + key + "=" + value);
+
+  if (state.title) add("title", JSON.stringify(state.title));
+  if (state.theme !== "system") add("theme", JSON.stringify(state.theme));
+  if (state.weeks !== 20) add("weeks", "{" + state.weeks + "}");
+  if (!state.showAi) add("showAi", "{false}");
+  if (state.card) props.push("  card");
+  if (state.showMeta) props.push("  showMeta");
+  for (const flag of ["showColumnLabels", "showStats", "showLegend", "showDonut", "showProviderToggle"]) {
+    if (!state[flag]) add(flag, "{false}");
+  }
+  if (state.cellShape !== "rounded") add("cellShape", JSON.stringify(state.cellShape));
+  if (state.cellSize !== 13) add("cellSize", "{" + state.cellSize + "}");
+  if (state.cellGap !== 3) add("cellGap", "{" + state.cellGap + "}");
+
+  const colors = ["github", "all", "claude", "codex", "cursor"]
+    .filter((key) => state[key] !== DEFAULTS[key])
+    .map((key) => key + ': "' + state[key] + '"');
+  if (colors.length > 0) add("colors", "{{ " + colors.join(", ") + " }}");
+
+  if (props.length === 0) return "<ActivityGraph data={activity} />";
+  return "<ActivityGraph\n  data={activity}\n" + props.join("\n") + "\n/>";
+}
+
+function Playground() {
+  const [state, setState] = useState(DEFAULTS);
+  const set = (name, value) => setState((previous) => ({ ...previous, [name]: value }));
+
+  const colors = useMemo(() => ({
+    github: state.github, all: state.all,
+    claude: state.claude, codex: state.codex, cursor: state.cursor,
+  }), [state.github, state.all, state.claude, state.codex, state.cursor]);
+
+  const background = state.theme;
+
+  return h("div", { className: "pg-shell" },
+    h("aside", { className: "pg-panel" },
+      h("h1", null, "Activity Heatmap"),
+      h("p", { className: "pg-sub" }, "Every control maps to one prop."),
+
+      h("div", { className: "pg-group" },
+        h("h2", null, "Theme"),
+        h(Segmented, {
+          value: state.theme,
+          options: ["system", "light", "dark"],
+          onChange: (value) => set("theme", value),
+        }),
+      ),
+
+      h("div", { className: "pg-group" },
+        h("h2", null, "Cells"),
+        h(Row, { label: "Shape", htmlFor: "pg-cellShape" },
+          h("select", {
+            id: "pg-cellShape",
+            value: state.cellShape,
+            onChange: (e) => set("cellShape", e.target.value),
+            style: { width: "110px" },
+          }, ["rounded", "square", "circle"].map((s) => h("option", { key: s, value: s }, s))),
+        ),
+        h(Slider, { state, set, name: "cellSize", label: "Size", min: 6, max: 26, suffix: "px" }),
+        h(Slider, { state, set, name: "cellGap", label: "Gap", min: 0, max: 10, suffix: "px" }),
+        h(Slider, { state, set, name: "weeks", label: "Weeks", min: 4, max: 53 }),
+      ),
+
+      h("div", { className: "pg-group" },
+        h("h2", null, "Colours"),
+        h(Swatch, { state, set, name: "github", label: "GitHub" }),
+        h(Swatch, { state, set, name: "all", label: "All" }),
+        h(Swatch, { state, set, name: "claude", label: "Claude" }),
+        h(Swatch, { state, set, name: "codex", label: "Codex" }),
+        h(Swatch, { state, set, name: "cursor", label: "Cursor" }),
+      ),
+
+      h("div", { className: "pg-group" },
+        h("h2", null, "Chrome"),
+        h(Row, { label: "Title", htmlFor: "pg-title" },
+          h("input", {
+            id: "pg-title",
+            type: "text", value: state.title, placeholder: "none",
+            onChange: (e) => set("title", e.target.value),
+          }),
+        ),
+        h(Toggle, { state, set, name: "card", label: "Card container" }),
+        h(Toggle, { state, set, name: "showMeta", label: "Meta line" }),
+        h(Toggle, { state, set, name: "showColumnLabels", label: "Column labels" }),
+        h(Toggle, { state, set, name: "showStats", label: "Stats row" }),
+        h(Toggle, { state, set, name: "showLegend", label: "Legend" }),
+        h(Toggle, { state, set, name: "showDonut", label: "Donut" }),
+        h(Toggle, { state, set, name: "showProviderToggle", label: "Provider toggle" }),
+        h(Toggle, { state, set, name: "showAi", label: "AI column" }),
+      ),
+
+      h("button", {
+        className: "pg-reset", type: "button", onClick: () => setState(DEFAULTS),
+      }, "Reset to defaults"),
+    ),
+
+    h("main", { className: "pg-stage" },
+      h("div", { className: "pg-canvas", "data-bg": background },
+        h(ActivityGraph, {
+          theme: state.theme,
+          weeks: state.weeks,
+          showAi: state.showAi,
+          card: state.card,
+          title: state.title || undefined,
+          showMeta: state.showMeta,
+          showColumnLabels: state.showColumnLabels,
+          showStats: state.showStats,
+          showLegend: state.showLegend,
+          showDonut: state.showDonut,
+          showProviderToggle: state.showProviderToggle,
+          cellShape: state.cellShape,
+          cellSize: state.cellSize,
+          cellGap: state.cellGap,
+          colors,
+        }),
+      ),
+      h("div", null,
+        h("p", { className: "pg-hint" }, "Paste this into your site:"),
+        h("pre", { className: "pg-code" }, snippet(state)),
+      ),
+    ),
+  );
+}
+
+createRoot(document.getElementById("root")).render(h(Playground));
+</script>
+</body>
+</html>

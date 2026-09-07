@@ -104,37 +104,51 @@ transcripts, or raw log files into the generated data.
 | GitHub | Contribution calendar via `GITHUB_TOKEN` or `gh auth token`. | contributions |
 | Claude Code | `~/.claude/projects/**/*.jsonl` | tokens |
 | Codex | `~/.codex/sessions/**/*.jsonl` and archived sessions | tokens |
-| Cursor | Cursor's `state.vscdb` workspace database | messages or edited lines |
+| Cursor | OpenUsage if running, else Cursor's `state.vscdb` | tokens, or messages / edited lines |
 | OpenUsage | `http://127.0.0.1:6736/v1/usage` when available | tokens |
 
 Every source is optional. If one is missing the sync keeps going and reports a
 warning; if you have none of them, the component still renders with demo data
 or an explicit empty state.
 
-### Why Cursor is not measured in tokens
+### How Cursor is measured
 
-Claude Code and Codex both write token counts to their session logs. Cursor
-does not. Its database has a `tokenCount` field on every message, but Cursor
-populates it so rarely — 12 of 60,183 messages on the machine this was built
-against — that it cannot be charted honestly.
+Claude Code and Codex write token counts into their own session logs. Cursor
+does not: its database has a `tokenCount` field on every message, but it is
+filled in on roughly 1 message in 5,000, so it cannot be charted.
 
-So Cursor reports what it *does* record reliably:
+Cursor tokens do exist — in Cursor's cloud usage API, which is what the
+[OpenUsage](https://github.com/nerdstudio-ai/openusage) menu-bar app reads.
+When OpenUsage is running, this package uses it and Cursor becomes a full
+token provider alongside Claude and Codex. When it is not, the collector falls
+back to Cursor's local database, which reliably records two other things.
 
-- `messages` (default) — messages per day, a steady day-to-day activity signal.
-- `edits` — lines added plus removed per day, which tracks impact rather than
-  chattiness but is empty on days you only chatted.
+`cursorMetric` picks between them:
 
-Switch with `cursorMetric` in the config, or `ACTIVITY_CURSOR_METRIC`.
+| Value | Source | Unit | History |
+| --- | --- | --- | --- |
+| `auto` (default) | OpenUsage if running, else the local database | tokens, else messages | ~30 days, else all |
+| `tokens` | OpenUsage only | tokens | ~30 days |
+| `messages` | local database | messages per day | as far back as Cursor keeps |
+| `edits` | local database | lines added + removed | as far back as Cursor keeps |
 
-Because the units genuinely differ, Cursor is never folded into a day's token
-total. The **All** view and the donut aggregate only the token providers;
-Cursor gets its own tab with its own unit. Cursor conversations also carry no
-per-message timestamps, so a thread is attributed to the day it was last
-updated.
+The tradeoff is coverage against comparability. OpenUsage gives real tokens
+that sit on the same axis as Claude and Codex, so Cursor joins the **All**
+view and the donut — but its usage trend is a rolling ~30-day window. The
+local database goes back much further but only in its own unit, so Cursor
+appears as its own tab and stays out of the token totals.
+
+A provider's series only ever holds one unit. If the unit changes between
+syncs — OpenUsage starts or stops running — the values stored in the old unit
+are discarded rather than merged, because 22,000,000 tokens and 4 messages
+cannot share a scale.
 
 Reading Cursor's database needs SQLite. Node 22.5+ has it built in; older
 versions fall back to the `sqlite3` CLI. The read is read-only and takes no
-lock, so it works while Cursor is running.
+lock, so it works while Cursor is open.
+
+Cursor conversations carry no per-message timestamps, so a thread is
+attributed to the day it was last updated.
 
 ### A note on token counts
 
@@ -184,7 +198,7 @@ normal scheduler. The collector has no server requirement.
   "output": "data/activity.json",
   "historyOutput": "data/ai-activity-history.json",
   "openUsageUrl": "http://127.0.0.1:6736/v1/usage",
-  "cursorMetric": "messages",
+  "cursorMetric": "auto",
   "sources": {
     "github": true,
     "codex": true,
@@ -203,7 +217,7 @@ GITHUB_USERNAME
 GITHUB_TOKEN or GH_TOKEN
 ACTIVITY_TIMEZONE
 ACTIVITY_RANGE_DAYS
-ACTIVITY_CURSOR_METRIC
+ACTIVITY_CURSOR_METRIC   auto | tokens | messages | edits
 AI_HISTORY_RETENTION_DAYS
 OPENUSAGE_URL
 ```

@@ -67,7 +67,7 @@ async function initProject(flags) {
     output: "data/activity.json",
     historyOutput: "data/ai-activity-history.json",
     openUsageUrl: "http://127.0.0.1:6736/v1/usage",
-    cursorMetric: "messages",
+    cursorMetric: "auto",
     sources: {
       github: true,
       codex: true,
@@ -97,7 +97,7 @@ async function doctor(flags) {
   console.log("  Codex logs: " + (report.sources.codexLogs ? "found" : "not found"));
   console.log("  OpenUsage: " + report.sources.openUsageUrl);
   console.log("  Cursor database: " + (report.sources.cursorDb || "not found"));
-  console.log("  Cursor metric: " + report.cursorMetric);
+  console.log("  Cursor metric: " + report.cursorMetric + " (auto resolves to tokens when OpenUsage is running)");
   console.log("  Cursor export override: " + (report.sources.cursorFile ? "found" : "not configured"));
   console.log("  output: " + report.outputPath);
 }
@@ -116,8 +116,11 @@ async function sync(flags) {
   );
   Object.entries(report.scans).forEach(([provider, scan]) => {
     const unit = scan.metric || "tokens";
-    const origin = scan.files === undefined ? "the Cursor database" : scan.files + " log files";
-    console.log("  " + provider + ": " + scan.days.size + " active days of " + unit + " from " + origin);
+    // A source may report explicit zeros for days it covered but saw no use;
+    // those are known days, not active ones.
+    const active = Array.from(scan.days.values()).filter((value) => value > 0).length;
+    const origin = scan.files === undefined ? scan.source : scan.files + " log files";
+    console.log("  " + provider + ": " + active + " active days of " + unit + " from " + origin);
   });
   console.log("  wrote " + report.outputPath);
   if (report.warnings.length > 0) {
@@ -138,7 +141,7 @@ Commands:
 Environment overrides:
   GITHUB_USERNAME, GITHUB_TOKEN, ACTIVITY_TIMEZONE,
   ACTIVITY_RANGE_DAYS, AI_HISTORY_RETENTION_DAYS, OPENUSAGE_URL,
-  ACTIVITY_CURSOR_METRIC (messages | edits)
+  ACTIVITY_CURSOR_METRIC (auto | tokens | messages | edits)
 
 The sync reads aggregate token metadata only. It never writes prompts or raw logs.
 `);

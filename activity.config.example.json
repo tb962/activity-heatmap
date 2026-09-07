@@ -8,7 +8,7 @@
   "output": "data/activity.json",
   "historyOutput": "data/ai-activity-history.json",
   "openUsageUrl": "http://127.0.0.1:6736/v1/usage",
-  "cursorMetric": "messages",
+  "cursorMetric": "auto",
   "sources": {
     "github": true,
     "codex": true,

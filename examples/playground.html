@@ -105,11 +105,11 @@
 <script type="module">
 import React, { useState, useMemo } from "react";
 import { createRoot } from "react-dom/client";
-import { ActivityGraph } from "../dist/index.js";
+import { ActivityHeatmap } from "../dist/index.js";
 
 const h = React.createElement;
 
-// Mirrors the shapes heatmapUI ships.
+// Mirrors the shapes heatmap-ui ships.
 const SHAPES = ["rounded", "square", "circle", "diamond", "hexagon", "plus", "bar", "ring"];
 
 const DEFAULTS = {
@@ -214,8 +214,8 @@ function snippet(state) {
     .map((key) => key + ': "' + state[key] + '"');
   if (colors.length > 0) add("colors", "{{ " + colors.join(", ") + " }}");
 
-  if (props.length === 0) return "<ActivityGraph data={activity} />";
-  return "<ActivityGraph\n  data={activity}\n" + props.join("\n") + "\n/>";
+  if (props.length === 0) return "<ActivityHeatmap data={activity} />";
+  return "<ActivityHeatmap\n  data={activity}\n" + props.join("\n") + "\n/>";
 }
 
 function Playground() {
@@ -284,7 +284,7 @@ function Playground() {
 
     h("main", { className: "pg-stage" },
       h("div", { className: "pg-canvas", "data-bg": background },
-        h(ActivityGraph, {
+        h(ActivityHeatmap, {
           theme: state.theme,
           weeks: state.weeks,
           showAi: state.showAi,

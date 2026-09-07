@@ -77,7 +77,7 @@ async function initProject(flags) {
   await mkdir(path.join(cwd, "data"), { recursive: true });
   await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
   console.log("Created " + configPath);
-  console.log("Next: set github.username, then run activity-graph sync");
+  console.log("Next: set github.username, then run activity-heatmap sync");
 }
 
 async function doctor(flags) {
@@ -86,7 +86,7 @@ async function doctor(flags) {
     console.log(JSON.stringify(report, null, 2));
     return;
   }
-  console.log("activity-graph doctor");
+  console.log("activity-heatmap doctor");
   console.log("  config: " + report.configPath);
   console.log("  GitHub username: " + (report.username || "not configured"));
   console.log("  GitHub auth: " + (report.githubToken || "not found"));
@@ -127,14 +127,14 @@ async function sync(flags) {
 }
 
 function printHelp() {
-  console.log(`activity-graph — local activity data for a portfolio heatmap
+  console.log(`activity-heatmap — local activity data for a portfolio heatmap
 
 Commands:
-  activity-graph init [--username you] [--cwd path]
-  activity-graph doctor [--cwd path] [--home path] [--json]
-  activity-graph sync [--cwd path] [--home path]
-  activity-graph schedule [--cwd path]
-  activity-graph unschedule
+  activity-heatmap init [--username you] [--cwd path]
+  activity-heatmap doctor [--cwd path] [--home path] [--json]
+  activity-heatmap sync [--cwd path] [--home path]
+  activity-heatmap schedule [--cwd path]
+  activity-heatmap unschedule
 
 Environment overrides:
   GITHUB_USERNAME, GITHUB_TOKEN, ACTIVITY_TIMEZONE,
@@ -154,7 +154,7 @@ async function main() {
   if (command === "schedule") {
     const result = await installLaunchAgent({
       cwd: cwdFrom(flags),
-      cliPath: path.resolve(process.argv[1] || path.join(PACKAGE_ROOT, "bin/activity-graph.mjs")),
+      cliPath: path.resolve(process.argv[1] || path.join(PACKAGE_ROOT, "bin/activity-heatmap.mjs")),
     });
     console.log("Installed " + result.label + " at " + result.plistPath);
     return;
@@ -168,6 +168,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("activity-graph: " + error.message);
+  console.error("activity-heatmap: " + error.message);
   process.exitCode = 1;
 });

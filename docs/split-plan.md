@@ -4,12 +4,12 @@ Two repositories. The UI component becomes a standalone library; this repo
 keeps the collectors and the two-column view and consumes it from npm.
 
 ```
-github.com/tb962/heatmap          @tb962/heatmap          the primitive
-github.com/tb962/activity-graph   @tb962/activity-graph   the product
+github.com/tb962/heatmap-ui        @tb962/heatmap-ui        the primitive
+github.com/tb962/activity-heatmap  @tb962/activity-heatmap  the product
 ```
 
-The dependency runs one way. `activity-graph` imports `@tb962/heatmap`;
-`heatmap` never learns what GitHub, Claude, Codex or Cursor are.
+The dependency runs one way. `activity-heatmap` imports `@tb962/heatmap-ui`;
+`heatmap-ui` never learns what GitHub, Claude, Codex or Cursor are.
 
 ---
 
@@ -153,7 +153,7 @@ It owns everything date-shaped and nothing else: mapping dates onto
 | `src/activity-grid.ts` | **split** | `quantileThresholds`, `activityLevel`, `gridMeasures` → core. `buildActivityGrid`, `dayKey`, `columnsToCover`, `columnsWithin`, month labels → calendar adapter. |
 | `src/activity-calendar.tsx` | **split** | Cell rendering, palette derivation, tooltip, legend → core `<Heatmap>`. Date formatting and month row → `<CalendarHeatmap>`. |
 | `src/styles.css` | **split** | `__calendar*`, `__cell*`, `__week*`, `__month-row`, `__legend*`, `__tooltip*` → core. `__surface`, `__columns`, `__column*`, `__stats`, `__stat`, `__provider-*`, `__source`, `__empty-note` → product. Theme tokens are duplicated in both, scoped to each root class. |
-| `src/activity-graph.tsx` | stays | Becomes a consumer of `<CalendarHeatmap>`. |
+| `src/activity-heatmap.tsx` | stays | Becomes a consumer of `<CalendarHeatmap>`. |
 | `src/activity.ts`, `demo-data.ts`, `types.ts` | stays | Product-specific. |
 | `lib/`, `bin/`, `test/`, `test-support/` | stays | Collectors and CLI. |
 | `examples/playground.html` | **both** | Core gets a shape/scale/encoding playground. Product keeps a slimmer one. |
@@ -168,43 +168,43 @@ with date formatting.
 
 The cost of two repos is version coordination. Handle it deliberately:
 
-**Local development.** In `activity-graph`, link the working copy instead of
+**Local development.** In `activity-heatmap`, link the working copy instead of
 publishing to test:
 
 ```bash
-cd ../heatmap && npm link
-cd ../activity-graph && npm link @tb962/heatmap
+cd ../heatmap-ui && npm link
+cd ../activity-heatmap && npm link @tb962/heatmap-ui
 ```
 
-Never commit a `file:../heatmap` dependency — it breaks every other clone.
+Never commit a `file:../heatmap-ui` dependency — it breaks every other clone.
 
 **Version range.** Depend on `^0.x` / `^1.0.0` so patches and minors flow
 without a bump in the product.
 
-**Catching breaks early.** Add a scheduled CI job in `activity-graph` that
-installs `@tb962/heatmap@main` from git and runs the test suite. Without it
+**Catching breaks early.** Add a scheduled CI job in `activity-heatmap` that
+installs `@tb962/heatmap-ui@main` from git and runs the test suite. Without it
 you find out the interface drifted when a user does.
 
-**Publish order.** Always `heatmap` first, then `activity-graph`. The product
+**Publish order.** Always `heatmap-ui` first, then `activity-heatmap`. The product
 can never reference an unpublished version.
 
 ---
 
 ## 5. Order of work
 
-1. **Create `tb962/heatmap`.** Move the grid math and the renderer. Port the
+1. **Create `tb962/heatmap-ui`.** Move the grid math and the renderer. Port the
    existing tests for `quantileThresholds` and `activityLevel`; add tests for
    matrix/sparse normalisation and the `known` distinction.
 2. **Build `<Heatmap>` to the API above** — new shapes and the `encode` prop
    included, since they affect the layout code and are painful to retrofit.
 3. **Add `<CalendarHeatmap>`** and verify it reproduces the current output
    exactly. The existing screenshots are the regression test.
-4. **Publish `@tb962/heatmap@0.1.0`.**
+4. **Publish `@tb962/heatmap-ui@0.1.0`.**
 5. **Point this repo at it.** Delete the moved files, add the dependency,
-   rewrite `activity-graph.tsx` against `<CalendarHeatmap>`. Screenshots
+   rewrite `activity-heatmap.tsx` against `<CalendarHeatmap>`. Screenshots
    should be pixel-identical; if they are not, the API is wrong.
-6. **Rename** this package to `@tb962/activity-graph`, keeping the
-   `activity-graph` CLI binary name it already uses.
+6. **Rename** this package to `@tb962/activity-heatmap`, keeping the
+   `activity-heatmap` CLI binary name it already uses.
 7. **Publish both.**
 
 Steps 1–4 are the bulk. Step 5 should be small if the API is right — that is

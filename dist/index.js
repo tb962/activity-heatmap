@@ -1,5 +1,5 @@
 "use client";
-export { ActivityGraph } from "./activity-graph.js";
+export { ActivityHeatmap } from "./activity-heatmap.js";
 export { createDemoActivityData, DEFAULT_ACTIVITY_DATA } from "./demo-data.js";
 export { ACTIVITY_PROVIDERS, } from "./types.js";
 // Re-exported so consumers can reach the primitive without a second install.

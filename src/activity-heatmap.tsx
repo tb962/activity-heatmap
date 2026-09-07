@@ -20,7 +20,7 @@ import {
 import { DEFAULT_ACTIVITY_DATA } from "./demo-data.js";
 import type {
   ActivityDataset,
-  ActivityGraphProps,
+  ActivityHeatmapProps,
   ActivityProvider,
   ActivityTheme,
   AiActivityView,
@@ -69,7 +69,7 @@ type ActivityView = {
   summary: ReturnType<typeof summarizeActivity>;
 };
 
-export function ActivityGraph({
+export function ActivityHeatmap({
   data = DEFAULT_ACTIVITY_DATA,
   weeks = 20,
   showAi = true,
@@ -90,7 +90,7 @@ export function ActivityGraph({
   className,
   style,
   ...sectionProps
-}: ActivityGraphProps) {
+}: ActivityHeatmapProps) {
   const [aiProvider, setAiProvider] = useState<AiActivityView>(defaultAiProvider);
   const resolvedTheme = useResolvedTheme(theme);
   // Memoised so downstream useMemo deps stay stable across renders.
@@ -135,8 +135,8 @@ export function ActivityGraph({
   const githubSource = displayData.github.source ?? "github.com/" + (displayData.github.username ?? "your-handle");
   const aiConfigured = Boolean(displayData.ai && displayData.ai.available !== false);
   const rootClassName = [
-    "activity-graph",
-    card ? "activity-graph--card" : null,
+    "activity-heatmap",
+    card ? "activity-heatmap--card" : null,
     className,
   ]
     .filter(Boolean)
@@ -149,14 +149,14 @@ export function ActivityGraph({
       style={style}
       {...sectionProps}
     >
-      <div className="activity-graph__surface">
-        <div className={showAi ? "activity-graph__columns" : "activity-graph__columns activity-graph__columns--single"}>
-          <div className="activity-graph__column">
+      <div className="activity-heatmap__surface">
+        <div className={showAi ? "activity-heatmap__columns" : "activity-heatmap__columns activity-heatmap__columns--single"}>
+          <div className="activity-heatmap__column">
             {showColumnLabels ? (
-              <div className="activity-graph__column-heading">
+              <div className="activity-heatmap__column-heading">
                 <div>
-                  <p className="activity-graph__column-label">GitHub</p>
-                  <p className="activity-graph__source">
+                  <p className="activity-heatmap__column-label">GitHub</p>
+                  <p className="activity-heatmap__source">
                     Source:{" "}
                     {displayData.github.href ? (
                       <a href={displayData.github.href} target="_blank" rel="noreferrer">
@@ -201,19 +201,19 @@ export function ActivityGraph({
 
           {showAi ? (
             <div
-              className="activity-graph__column activity-graph__column--ai"
+              className="activity-heatmap__column activity-heatmap__column--ai"
               style={{ "--activity-provider-color": colors[aiProvider] } as CSSProperties}
             >
               {showColumnLabels || showProviderToggle ? (
-                <div className="activity-graph__column-heading">
+                <div className="activity-heatmap__column-heading">
                   {showColumnLabels ? (
-                    <div className="activity-graph__column-heading-copy">
-                      <p className="activity-graph__column-label">AI activity</p>
-                      <p className="activity-graph__source">
+                    <div className="activity-heatmap__column-heading-copy">
+                      <p className="activity-heatmap__column-label">AI activity</p>
+                      <p className="activity-heatmap__source">
                         Source: {displayData.ai?.source ?? displayData.ai?.sources?.[aiProvider === "all" ? "claude" : aiProvider] ?? "No AI activity source connected"}
                       </p>
                       {!aiConfigured ? (
-                        <p className="activity-graph__empty-note">
+                        <p className="activity-heatmap__empty-note">
                           Pass <code>data.ai</code> to replace the demo ledger.
                         </p>
                       ) : null}
@@ -221,11 +221,11 @@ export function ActivityGraph({
                   ) : null}
 
                   {showProviderToggle ? (
-                    <div className="activity-graph__provider-toggle" role="group" aria-label="Choose AI activity view">
+                    <div className="activity-heatmap__provider-toggle" role="group" aria-label="Choose AI activity view">
                       {(["all", ...PROVIDER_ORDER] as AiActivityView[]).map((provider) => (
                         <button
                           type="button"
-                          className="activity-graph__provider-button"
+                          className="activity-heatmap__provider-button"
                           data-active={aiProvider === provider ? "true" : "false"}
                           aria-pressed={aiProvider === provider}
                           key={provider}
@@ -371,7 +371,7 @@ function ActivitySummaryStats({
   summaryLabel: string;
 }) {
   return (
-    <div className="activity-graph__stats" aria-label={summaryLabel}>
+    <div className="activity-heatmap__stats" aria-label={summaryLabel}>
       <ActivityStat value={formatCompactNumber(summary.total)} label={metricLabel} />
       <ActivityStat value={formatExactNumber(summary.activeDays)} label="active days" />
       <ActivityStat value={formatCompactNumber(summary.peak)} label="peak" />
@@ -383,7 +383,7 @@ function ActivitySummaryStats({
 
 function ActivityStat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="activity-graph__stat">
+    <div className="activity-heatmap__stat">
       <strong>{value}</strong>
       <span>{label}</span>
     </div>
@@ -395,4 +395,4 @@ function formatDayCount(value: number | null): string {
   return value + (value === 1 ? " day" : " days");
 }
 
-export default ActivityGraph;
+export default ActivityHeatmap;

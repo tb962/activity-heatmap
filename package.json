@@ -1,5 +1,5 @@
 {
-  "name": "@tb962/activity-heatmap-ui",
+  "name": "@tb962/activity-heatmap",
   "version": "0.1.0",
   "description": "Your GitHub contributions and local AI coding activity on one card, collected entirely from your own machine.",
   "license": "MIT",
@@ -8,7 +8,7 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "activity-graph": "./bin/activity-graph.mjs"
+    "activity-heatmap": "./bin/activity-heatmap.mjs"
   },
   "exports": {
     ".": {
@@ -51,11 +51,11 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/tb962/ActivityHeatmapUI.git"
+    "url": "git+https://github.com/tb962/activity-heatmap.git"
   },
-  "homepage": "https://github.com/tb962/ActivityHeatmapUI#readme",
+  "homepage": "https://github.com/tb962/activity-heatmap#readme",
   "bugs": {
-    "url": "https://github.com/tb962/ActivityHeatmapUI/issues"
+    "url": "https://github.com/tb962/activity-heatmap/issues"
   },
   "author": "tb962",
   "keywords": [

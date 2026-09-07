@@ -25,7 +25,7 @@ test("scans Claude Code and Codex token metadata without reading prompts", async
 });
 
 test("sync combines local logs and GitHub into activity.v1", async () => {
-  const cwd = await mkdtemp(path.join(tmpdir(), "activity-graph-test-"));
+  const cwd = await mkdtemp(path.join(tmpdir(), "activity-heatmap-test-"));
   const fetchImpl = async (url) => {
     if (url === "https://api.github.com/graphql") {
       return new Response(JSON.stringify({
@@ -79,7 +79,7 @@ test("sync combines local logs and GitHub into activity.v1", async () => {
 });
 
 test("cursor activity never leaks into a day's token total", async () => {
-  const cwd = await mkdtemp(path.join(tmpdir(), "activity-graph-units-"));
+  const cwd = await mkdtemp(path.join(tmpdir(), "activity-heatmap-units-"));
   await writeFile(
     path.join(cwd, "activity.config.json"),
     JSON.stringify({
@@ -125,8 +125,8 @@ test("cursor activity never leaks into a day's token total", async () => {
  * is meaningless, so switching metric must replace the stored values.
  */
 test("a provider's series never mixes two units", async (t) => {
-  const cwd = await mkdtemp(path.join(tmpdir(), "activity-graph-units-switch-"));
-  const home = await mkdtemp(path.join(tmpdir(), "activity-graph-home-"));
+  const cwd = await mkdtemp(path.join(tmpdir(), "activity-heatmap-units-switch-"));
+  const home = await mkdtemp(path.join(tmpdir(), "activity-heatmap-home-"));
   const conversationDb = defaultCursorDbPaths(home)[0];
   const trackingDb = defaultCursorTrackingDbPaths(home)[0];
   await mkdir(path.dirname(conversationDb), { recursive: true });

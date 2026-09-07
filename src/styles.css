@@ -4,33 +4,33 @@
  * redefine only the tokens, once for `prefers-color-scheme` (guarded so an
  * explicit light choice still wins) and once for an explicit dark choice.
  */
-.activity-graph {
-  --activity-graph-ink: #1a1815;
-  --activity-graph-muted: #817b73;
-  --activity-graph-faint: #b3ada5;
-  --activity-graph-line: #e8e2da;
-  --activity-graph-card: #ffffff;
-  --activity-graph-surface: #f7f5f1;
-  --activity-graph-code: #f4f1ec;
-  --activity-graph-accent: #b94f31;
-  --activity-graph-on-accent: #ffffff;
-  --activity-graph-card-shadow: 0 22px 60px rgba(26, 24, 21, 0.08);
-  --activity-graph-toggle-shadow: 0 3px 10px rgba(26, 24, 21, 0.12);
-  --activity-graph-popover-bg: rgba(255, 255, 255, 0.97);
-  --activity-graph-popover-border: rgba(26, 24, 21, 0.1);
-  --activity-graph-popover-shadow: 0 12px 28px rgba(26, 24, 21, 0.12);
-  --activity-graph-github-1: #dcefe0;
-  --activity-graph-github-2: #b5dcbf;
-  --activity-graph-github-3: #7fbe8d;
-  --activity-graph-github-4: #438a53;
+.activity-heatmap {
+  --activity-heatmap-ink: #1a1815;
+  --activity-heatmap-muted: #817b73;
+  --activity-heatmap-faint: #b3ada5;
+  --activity-heatmap-line: #e8e2da;
+  --activity-heatmap-card: #ffffff;
+  --activity-heatmap-surface: #f7f5f1;
+  --activity-heatmap-code: #f4f1ec;
+  --activity-heatmap-accent: #b94f31;
+  --activity-heatmap-on-accent: #ffffff;
+  --activity-heatmap-card-shadow: 0 22px 60px rgba(26, 24, 21, 0.08);
+  --activity-heatmap-toggle-shadow: 0 3px 10px rgba(26, 24, 21, 0.12);
+  --activity-heatmap-popover-bg: rgba(255, 255, 255, 0.97);
+  --activity-heatmap-popover-border: rgba(26, 24, 21, 0.1);
+  --activity-heatmap-popover-shadow: 0 12px 28px rgba(26, 24, 21, 0.12);
+  --activity-heatmap-github-1: #dcefe0;
+  --activity-heatmap-github-2: #b5dcbf;
+  --activity-heatmap-github-3: #7fbe8d;
+  --activity-heatmap-github-4: #438a53;
   width: 100%;
-  color: var(--activity-graph-ink);
+  color: var(--activity-heatmap-ink);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-.activity-graph *,
-.activity-graph *::before,
-.activity-graph *::after {
+.activity-heatmap *,
+.activity-heatmap *::before,
+.activity-heatmap *::after {
   box-sizing: border-box;
 }
 
@@ -38,50 +38,50 @@
  * The surface is deliberately bare: no border, background, padding or shadow.
  * The package ships charts, not a layout. Opt into the card with `card`.
  */
-.activity-graph__surface {
+.activity-heatmap__surface {
   width: 100%;
   overflow: visible;
 }
 
-.activity-graph--card .activity-graph__surface {
+.activity-heatmap--card .activity-heatmap__surface {
   width: min(100% - 2rem, 1440px);
   margin: 0 auto;
   padding: 32px 32px 24px;
-  border: 1px solid var(--activity-graph-line);
+  border: 1px solid var(--activity-heatmap-line);
   border-radius: clamp(1.35rem, 3vw, 2rem);
-  background: var(--activity-graph-card);
-  box-shadow: var(--activity-graph-card-shadow);
-  animation: activity-graph-enter 580ms cubic-bezier(0.2, 0, 0, 1) both;
+  background: var(--activity-heatmap-card);
+  box-shadow: var(--activity-heatmap-card-shadow);
+  animation: activity-heatmap-enter 580ms cubic-bezier(0.2, 0, 0, 1) both;
 }
 
-.activity-graph__columns {
+.activity-heatmap__columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
 }
 
-.activity-graph__columns--single {
+.activity-heatmap__columns--single {
   grid-template-columns: minmax(0, 1fr);
 }
 
-.activity-graph__column {
+.activity-heatmap__column {
   min-width: 0;
 }
 
-.activity-graph__column-heading {
+.activity-heatmap__column-heading {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 1rem;
 }
 
-.activity-graph__column-heading-copy {
+.activity-heatmap__column-heading-copy {
   min-width: 0;
 }
 
-.activity-graph__column-label {
+.activity-heatmap__column-label {
   margin: 0;
-  color: var(--activity-graph-ink);
+  color: var(--activity-heatmap-ink);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.12em;
@@ -89,54 +89,54 @@
   text-transform: uppercase;
 }
 
-.activity-graph__source {
+.activity-heatmap__source {
   max-width: none;
   margin: 0.35rem 0 0;
-  color: var(--activity-graph-muted);
+  color: var(--activity-heatmap-muted);
   font-size: 0.62rem;
   line-height: 1.25;
 }
 
-.activity-graph__source a {
-  color: var(--activity-graph-ink);
+.activity-heatmap__source a {
+  color: var(--activity-heatmap-ink);
   text-underline-offset: 0.18em;
 }
 
-.activity-graph__source a:hover {
-  color: var(--activity-graph-accent);
+.activity-heatmap__source a:hover {
+  color: var(--activity-heatmap-accent);
 }
 
-.activity-graph__empty-note {
+.activity-heatmap__empty-note {
   margin: 0.5rem 0 0;
-  color: var(--activity-graph-muted);
+  color: var(--activity-heatmap-muted);
   font-size: 0.62rem;
   line-height: 1.35;
 }
 
-.activity-graph__empty-note code {
+.activity-heatmap__empty-note code {
   padding: 0.08rem 0.25rem;
   border-radius: 0.25rem;
-  background: var(--activity-graph-code);
+  background: var(--activity-heatmap-code);
   font-size: 0.95em;
 }
 
-.activity-graph__provider-toggle {
+.activity-heatmap__provider-toggle {
   display: inline-flex;
   flex-shrink: 0;
   gap: 0.12rem;
   padding: 0.12rem 0.2rem;
-  border: 1px solid var(--activity-graph-line);
+  border: 1px solid var(--activity-heatmap-line);
   border-radius: 999px;
-  background: var(--activity-graph-surface);
+  background: var(--activity-heatmap-surface);
 }
 
-.activity-graph__provider-button {
+.activity-heatmap__provider-button {
   min-height: 1.6rem;
   padding: 2px 8px;
   border: 0;
   border-radius: 999px;
   background: transparent;
-  color: var(--activity-graph-muted);
+  color: var(--activity-heatmap-muted);
   cursor: pointer;
   font: inherit;
   font-size: 0.68rem;
@@ -144,22 +144,22 @@
   transition: background-color 160ms ease-out, color 160ms ease-out, transform 160ms ease-out;
 }
 
-.activity-graph__provider-button[data-active="true"] {
+.activity-heatmap__provider-button[data-active="true"] {
   background: var(--activity-provider-color);
-  color: var(--activity-graph-on-accent);
-  box-shadow: var(--activity-graph-toggle-shadow);
+  color: var(--activity-heatmap-on-accent);
+  box-shadow: var(--activity-heatmap-toggle-shadow);
 }
 
-.activity-graph__provider-button:focus-visible {
+.activity-heatmap__provider-button:focus-visible {
   outline: 2px solid var(--activity-provider-color);
   outline-offset: 2px;
 }
 
-.activity-graph__provider-button:active {
+.activity-heatmap__provider-button:active {
   transform: scale(0.97);
 }
 
-.activity-graph__stats {
+.activity-heatmap__stats {
   display: flex;
   align-items: flex-start;
   flex-wrap: wrap;
@@ -167,14 +167,14 @@
   margin: 1.2rem 0 1.25rem;
 }
 
-.activity-graph__stat {
+.activity-heatmap__stat {
   display: grid;
   gap: 0.18rem;
   min-width: fit-content;
 }
 
-.activity-graph__stat strong {
-  color: var(--activity-graph-ink);
+.activity-heatmap__stat strong {
+  color: var(--activity-heatmap-ink);
   font-size: clamp(0.94rem, 1.35vw, 1.12rem);
   font-weight: 500;
   letter-spacing: -0.035em;
@@ -182,19 +182,19 @@
   white-space: nowrap;
 }
 
-.activity-graph__stat span {
-  color: var(--activity-graph-muted);
+.activity-heatmap__stat span {
+  color: var(--activity-heatmap-muted);
   font-size: 0.62rem;
   line-height: 1.25;
   white-space: nowrap;
 }
 
-@keyframes activity-graph-enter {
+@keyframes activity-heatmap-enter {
   from { opacity: 0; transform: translateY(24px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-@keyframes activity-graph-tooltip-in {
+@keyframes activity-heatmap-tooltip-in {
   from { opacity: 0; transform: translate(-50%, 0.35rem) scale(0.97); }
   to { opacity: 1; transform: translate(-50%, 0.2rem) scale(1); }
 }
@@ -203,23 +203,23 @@
 }
 
 @media (max-width: 900px) {
-  .activity-graph__columns { grid-template-columns: 1fr; gap: 24px; }
+  .activity-heatmap__columns { grid-template-columns: 1fr; gap: 24px; }
 }
 
 @media (max-width: 760px) {
-  .activity-graph--card .activity-graph__surface { width: min(100% - 1rem, 1440px); padding: 16px; }
-  .activity-graph__stats { flex-wrap: nowrap; gap: 0.5rem; overflow: hidden; }
-  .activity-graph__stat { flex: 1 1 0; min-width: 0; }
-  .activity-graph__stat strong,
-  .activity-graph__stat span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-  .activity-graph__column--ai .activity-graph__column-heading { align-items: flex-start; }
-  .activity-graph__provider-toggle { max-width: 100%; }
-  .activity-graph__provider-button { padding-inline: 6px; }
+  .activity-heatmap--card .activity-heatmap__surface { width: min(100% - 1rem, 1440px); padding: 16px; }
+  .activity-heatmap__stats { flex-wrap: nowrap; gap: 0.5rem; overflow: hidden; }
+  .activity-heatmap__stat { flex: 1 1 0; min-width: 0; }
+  .activity-heatmap__stat strong,
+  .activity-heatmap__stat span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .activity-heatmap__column--ai .activity-heatmap__column-heading { align-items: flex-start; }
+  .activity-heatmap__provider-toggle { max-width: 100%; }
+  .activity-heatmap__provider-button { padding-inline: 6px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .activity-graph__surface,
-  .activity-graph__provider-button { animation: none; transition: none; }
+  .activity-heatmap__surface,
+  .activity-heatmap__provider-button { animation: none; transition: none; }
 }
 
 /*
@@ -227,45 +227,45 @@
  * light, so `data-activity-theme="light"` always wins on a dark OS.
  */
 @media (prefers-color-scheme: dark) {
-  .activity-graph:not([data-activity-theme="light"]) {
-  --activity-graph-ink: #e8e6e3;
-  --activity-graph-muted: #9a938a;
-  --activity-graph-faint: #6b645c;
-  --activity-graph-line: #2a2724;
-  --activity-graph-card: #171614;
-  --activity-graph-surface: #201e1b;
-  --activity-graph-code: #242220;
-  --activity-graph-accent: #e08363;
-  --activity-graph-on-accent: #ffffff;
-  --activity-graph-card-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
-  --activity-graph-toggle-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
-  --activity-graph-popover-bg: rgba(32, 30, 27, 0.97);
-  --activity-graph-popover-border: rgba(255, 255, 255, 0.12);
-  --activity-graph-popover-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
-  --activity-graph-github-1: #16341f;
-  --activity-graph-github-2: #1f5b32;
-  --activity-graph-github-3: #2f8a4a;
-  --activity-graph-github-4: #4cc266;
+  .activity-heatmap:not([data-activity-theme="light"]) {
+  --activity-heatmap-ink: #e8e6e3;
+  --activity-heatmap-muted: #9a938a;
+  --activity-heatmap-faint: #6b645c;
+  --activity-heatmap-line: #2a2724;
+  --activity-heatmap-card: #171614;
+  --activity-heatmap-surface: #201e1b;
+  --activity-heatmap-code: #242220;
+  --activity-heatmap-accent: #e08363;
+  --activity-heatmap-on-accent: #ffffff;
+  --activity-heatmap-card-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+  --activity-heatmap-toggle-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  --activity-heatmap-popover-bg: rgba(32, 30, 27, 0.97);
+  --activity-heatmap-popover-border: rgba(255, 255, 255, 0.12);
+  --activity-heatmap-popover-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  --activity-heatmap-github-1: #16341f;
+  --activity-heatmap-github-2: #1f5b32;
+  --activity-heatmap-github-3: #2f8a4a;
+  --activity-heatmap-github-4: #4cc266;
   }
 }
 
-.activity-graph[data-activity-theme="dark"] {
-  --activity-graph-ink: #e8e6e3;
-  --activity-graph-muted: #9a938a;
-  --activity-graph-faint: #6b645c;
-  --activity-graph-line: #2a2724;
-  --activity-graph-card: #171614;
-  --activity-graph-surface: #201e1b;
-  --activity-graph-code: #242220;
-  --activity-graph-accent: #e08363;
-  --activity-graph-on-accent: #ffffff;
-  --activity-graph-card-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
-  --activity-graph-toggle-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
-  --activity-graph-popover-bg: rgba(32, 30, 27, 0.97);
-  --activity-graph-popover-border: rgba(255, 255, 255, 0.12);
-  --activity-graph-popover-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
-  --activity-graph-github-1: #16341f;
-  --activity-graph-github-2: #1f5b32;
-  --activity-graph-github-3: #2f8a4a;
-  --activity-graph-github-4: #4cc266;
+.activity-heatmap[data-activity-theme="dark"] {
+  --activity-heatmap-ink: #e8e6e3;
+  --activity-heatmap-muted: #9a938a;
+  --activity-heatmap-faint: #6b645c;
+  --activity-heatmap-line: #2a2724;
+  --activity-heatmap-card: #171614;
+  --activity-heatmap-surface: #201e1b;
+  --activity-heatmap-code: #242220;
+  --activity-heatmap-accent: #e08363;
+  --activity-heatmap-on-accent: #ffffff;
+  --activity-heatmap-card-shadow: 0 22px 60px rgba(0, 0, 0, 0.45);
+  --activity-heatmap-toggle-shadow: 0 3px 10px rgba(0, 0, 0, 0.4);
+  --activity-heatmap-popover-bg: rgba(32, 30, 27, 0.97);
+  --activity-heatmap-popover-border: rgba(255, 255, 255, 0.12);
+  --activity-heatmap-popover-shadow: 0 12px 28px rgba(0, 0, 0, 0.5);
+  --activity-heatmap-github-1: #16341f;
+  --activity-heatmap-github-2: #1f5b32;
+  --activity-heatmap-github-3: #2f8a4a;
+  --activity-heatmap-github-4: #4cc266;
 }

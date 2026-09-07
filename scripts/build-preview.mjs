@@ -9,7 +9,7 @@ import { promisify } from "node:util";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { ActivityGraph } from "../dist/index.js";
+import { ActivityHeatmap } from "../dist/index.js";
 
 const execFileAsync = promisify(execFile);
 const root = path.resolve(import.meta.dirname, "..");
@@ -27,7 +27,7 @@ function page(body, background, pad = "22px 0 22px") {
   return `<!doctype html><html><head><meta charset="utf-8"><title>Activity Heatmap preview</title><style>
 ${css}
 body{margin:0;background:${background};font:14px ui-sans-serif,system-ui,-apple-system,sans-serif;}
-.activity-graph{padding:${pad};}
+.activity-heatmap{padding:${pad};}
 </style></head><body>${body}</body></html>`;
 }
 
@@ -41,7 +41,7 @@ const CARD_PROPS = { card: true };
 // One page showing both themes, for eyeballing in a browser.
 const combined = THEMES.map(([theme, background]) =>
   `<div style="background:${background}">${renderToStaticMarkup(
-    React.createElement(ActivityGraph, { ...CARD_PROPS, theme }),
+    React.createElement(ActivityHeatmap, { ...CARD_PROPS, theme }),
   )}</div>`,
 ).join("");
 await writeFile(path.join(root, "examples/preview.html"), page(combined, "#ffffff"), "utf8");
@@ -50,7 +50,7 @@ console.log("wrote examples/preview.html");
 const chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
 for (const [theme, background] of THEMES) {
   const html = page(
-    renderToStaticMarkup(React.createElement(ActivityGraph, { ...CARD_PROPS, theme })),
+    renderToStaticMarkup(React.createElement(ActivityHeatmap, { ...CARD_PROPS, theme })),
     background,
   );
   const temporary = path.join(root, "docs", "_" + theme + ".html");

@@ -4,7 +4,7 @@ Your GitHub contributions and your local AI coding activity — Claude Code,
 Codex and Cursor — on one card, collected entirely from your own machine.
 
 The heatmaps themselves come from
-[heatmapUI](https://github.com/tb962/heatmapUI); this package adds the
+[heatmap-ui](https://github.com/tb962/heatmap-ui); this package adds the
 collectors, the CLI and the two-column layout.
 
 ![The card in light mode](docs/preview-light.png)
@@ -27,13 +27,13 @@ on your machine until you choose to publish the generated aggregate JSON.
 Install it in the website where the graph should appear:
 
 ```bash
-npm install @tb962/activity-heatmap-ui
+npm install @tb962/activity-heatmap
 ```
 
 Create a local config and put in your GitHub username:
 
 ```bash
-npx activity-graph init --username your-github-username
+npx activity-heatmap init --username your-github-username
 ```
 
 Authenticate GitHub once. Either use the GitHub CLI:
@@ -51,8 +51,8 @@ export GITHUB_TOKEN=github_pat_...
 Generate the aggregate data:
 
 ```bash
-npx activity-graph doctor
-npx activity-graph sync
+npx activity-heatmap doctor
+npx activity-heatmap sync
 ```
 
 Then render it in React:
@@ -60,16 +60,16 @@ Then render it in React:
 ```tsx
 import activity from "./data/activity.json";
 import {
-  ActivityGraph,
+  ActivityHeatmap,
   type ActivityDataset,
-} from "@tb962/activity-heatmap-ui";
+} from "@tb962/activity-heatmap";
 
 // Two stylesheets: the heatmap primitive, then this package's layout.
 import "@tb962/heatmap-ui/styles.css";
-import "@tb962/activity-heatmap-ui/styles.css";
+import "@tb962/activity-heatmap/styles.css";
 
 export function WorkBehindTheWork() {
-  return <ActivityGraph data={activity as ActivityDataset} />;
+  return <ActivityHeatmap data={activity as ActivityDataset} />;
 }
 ```
 
@@ -77,7 +77,7 @@ For Next App Router, import both stylesheets once from `app/layout.tsx`. The
 component already declares its client boundary, so the page can remain a
 Server Component and pass the JSON as serializable props.
 
-Without a `data` prop, `<ActivityGraph />` renders the built-in deterministic
+Without a `data` prop, `<ActivityHeatmap />` renders the built-in deterministic
 demo. For GitHub-only sites, use `showAi={false}` or pass a dataset without an
 `ai` section.
 
@@ -88,7 +88,7 @@ no border — write your own headings around the component and it drops into
 your design with nothing to override:
 
 ```tsx
-<ActivityGraph data={activity} />
+<ActivityHeatmap data={activity} />
 ```
 
 Wrap it however you like:
@@ -96,7 +96,7 @@ Wrap it however you like:
 ```tsx
 <section>
   <h2>Your own heading</h2>
-  <ActivityGraph data={activity} card />
+  <ActivityHeatmap data={activity} card />
 </section>
 ```
 
@@ -112,7 +112,7 @@ Wrap it however you like:
 Strip it back to a single bare heatmap:
 
 ```tsx
-<ActivityGraph
+<ActivityHeatmap
   data={activity}
   showAi={false}
   showColumnLabels={false}
@@ -124,7 +124,7 @@ Strip it back to a single bare heatmap:
 ## Appearance
 
 ```tsx
-<ActivityGraph
+<ActivityHeatmap
   data={activity}
   cellShape="circle"
   cellSize={15}
@@ -144,7 +144,7 @@ Strip it back to a single bare heatmap:
 
 Anything not covered by a prop is a CSS custom property — see
 [Theming](#theming). For lower-level control, `Heatmap` and `CalendarHeatmap`
-are re-exported from [heatmapUI](https://github.com/tb962/heatmapUI), so you
+are re-exported from [heatmap-ui](https://github.com/tb962/heatmap-ui), so you
 can drop this layout entirely and keep the grid.
 
 ### Playground
@@ -165,19 +165,19 @@ The graph follows the visitor's OS setting by default. Force one palette with
 the `theme` prop:
 
 ```tsx
-<ActivityGraph theme="dark" />   // always dark
-<ActivityGraph theme="light" />  // always light
-<ActivityGraph />                // "system" — follows prefers-color-scheme
+<ActivityHeatmap theme="dark" />   // always dark
+<ActivityHeatmap theme="light" />  // always light
+<ActivityHeatmap />                // "system" — follows prefers-color-scheme
 ```
 
-Every colour is a CSS custom property on `.activity-graph`, so you can restyle
+Every colour is a CSS custom property on `.activity-heatmap`, so you can restyle
 it without forking the stylesheet:
 
 ```css
-.activity-graph {
-  --activity-graph-card: #fffdf8;
-  --activity-graph-ink: #1a1815;
-  --activity-graph-github-4: #216e39;
+.activity-heatmap {
+  --activity-heatmap-card: #fffdf8;
+  --activity-heatmap-ink: #1a1815;
+  --activity-heatmap-github-4: #216e39;
 }
 ```
 
@@ -268,16 +268,16 @@ Days outside a provider's known coverage render at half opacity and are marked
 On macOS, install a user-level launchd job that runs once a day:
 
 ```bash
-npx activity-graph schedule
+npx activity-heatmap schedule
 ```
 
 Remove it with:
 
 ```bash
-npx activity-graph unschedule
+npx activity-heatmap unschedule
 ```
 
-On Linux or Windows, run `npx activity-graph sync` from the operating system's
+On Linux or Windows, run `npx activity-heatmap sync` from the operating system's
 normal scheduler. The collector has no server requirement.
 
 ## Configuration

@@ -24,7 +24,7 @@ jobs:
       - run: npm test
       - run: npm run build
 
-  # Two repos drift silently. This catches an interface change in heatmapUI
+  # Two repos drift silently. This catches an interface change in heatmap-ui
   # before a user does, rather than when the next version is published.
   against-heatmap-main:
     runs-on: ubuntu-latest
@@ -35,6 +35,6 @@ jobs:
         with:
           node-version: 22
       - run: npm install
-      - run: npm install github:tb962/heatmapUI
+      - run: npm install github:tb962/heatmap-ui
       - run: npm run typecheck
       - run: npm test

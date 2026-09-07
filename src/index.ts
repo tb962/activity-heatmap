@@ -1,13 +1,12 @@
 "use client";
 
-export { ActivityGraph } from "./activity-graph.js";
+export { ActivityHeatmap } from "./activity-heatmap.js";
 export { createDemoActivityData, DEFAULT_ACTIVITY_DATA } from "./demo-data.js";
 export {
   ACTIVITY_PROVIDERS,
-  type ActivityCellShape,
   type ActivityColors,
   type ActivityDataset,
-  type ActivityGraphProps,
+  type ActivityHeatmapProps,
   type ActivityProvider,
   type ActivityTheme,
   type AiActivityCoverage,

@@ -2,11 +2,12 @@
 
 export { ActivityGraph } from "./activity-graph.js";
 export { ActivityCalendar } from "./activity-calendar.js";
-export { ProviderDonut } from "./provider-donut.js";
 export { createDemoActivityData, DEFAULT_ACTIVITY_DATA } from "./demo-data.js";
 export type { ActivityCalendarProps } from "./activity-calendar.js";
 export {
   ACTIVITY_PROVIDERS,
+  type ActivityCellShape,
+  type ActivityColors,
   type ActivityDataset,
   type ActivityGraphProps,
   type ActivityProvider,

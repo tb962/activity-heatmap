@@ -6,7 +6,6 @@ import {
   addDays,
   dateKey,
   formatCompactNumber,
-  formatDateLong,
   formatExactNumber,
   getCalendarRange,
   getProviderCoverage,
@@ -17,7 +16,6 @@ import {
   trimToDisplayRange,
 } from "./activity.js";
 import { ActivityCalendar } from "./activity-calendar.js";
-import { ProviderDonut } from "./provider-donut.js";
 import { DEFAULT_ACTIVITY_DATA } from "./demo-data.js";
 import type {
   ActivityDataset,
@@ -62,18 +60,15 @@ type ActivityView = {
 
 export function ActivityGraph({
   data = DEFAULT_ACTIVITY_DATA,
-  title,
   weeks = 20,
   showAi = true,
   defaultAiProvider = "all",
   providerLabels: customProviderLabels,
   theme = "system",
-  showMeta = false,
   card = false,
   showColumnLabels = true,
   showStats = true,
   showLegend = true,
-  showDonut = true,
   showProviderToggle = true,
   cellShape = "rounded",
   cellSize = 13,
@@ -118,18 +113,10 @@ export function ActivityGraph({
     [aiProvider, displayData, displayRange],
   );
 
-  const aiProviderBreakdown = useMemo(
-    () => buildAiProviderBreakdown(displayData, displayRange, providerLabels, colors),
-    [displayData, displayRange, providerLabels, colors],
-  );
-
   const aiMetricLabel = useMemo(
     () => resolveMetricLabel(displayData, aiProvider),
     [displayData, aiProvider],
   );
-  const generatedLabel = displayData.generatedAt
-    ? "Updated " + formatDateLong(displayData.generatedAt.slice(0, 10))
-    : "Demo data";
   const githubSource = displayData.github.source ?? "github.com/" + (displayData.github.username ?? "your-handle");
   const aiConfigured = Boolean(displayData.ai && displayData.ai.available !== false);
   const rootClassName = [
@@ -139,7 +126,6 @@ export function ActivityGraph({
   ]
     .filter(Boolean)
     .join(" ");
-  const hasHeading = title !== undefined || showMeta;
 
   return (
     <section
@@ -149,19 +135,6 @@ export function ActivityGraph({
       {...sectionProps}
     >
       <div className="activity-graph__surface">
-        {hasHeading ? (
-          <div className="activity-graph__heading">
-            {title !== undefined ? <h2>{title}</h2> : <span />}
-            {showMeta ? (
-              <span className="activity-graph__freshness">
-                {generatedLabel}
-                <span aria-hidden="true">•</span>
-                Last {weeks} weeks
-              </span>
-            ) : null}
-          </div>
-        ) : null}
-
         <div className={showAi ? "activity-graph__columns" : "activity-graph__columns activity-graph__columns--single"}>
           <div className="activity-graph__column">
             {showColumnLabels ? (
@@ -254,8 +227,7 @@ export function ActivityGraph({
                 />
               ) : null}
 
-              <div className="activity-graph__ai-visuals">
-                <ActivityCalendar
+              <ActivityCalendar
                   theme={resolvedTheme}
                   data={aiView.days}
                   to={displayData.range.to}
@@ -269,22 +241,10 @@ export function ActivityGraph({
                   levelColors={levelColors}
                   emptyColor={emptyColor}
                   tooltip={(day) => formatCompactNumber(day.value) + " " + aiMetricLabel}
-                  cell={cellSize}
-                  gap={cellGap}
-                  shape={cellShape}
-                />
-
-                {showDonut ? (
-                  <div className="activity-graph__ai-breakdown">
-                    <ProviderDonut
-                      data={aiProviderBreakdown}
-                      valueFormatter={formatCompactNumber}
-                      centerLabel={"all " + aiMetricLabel}
-                      ariaLabel="AI activity breakdown by provider"
-                    />
-                  </div>
-                ) : null}
-              </div>
+                cell={cellSize}
+                gap={cellGap}
+                shape={cellShape}
+              />
             </div>
           ) : null}
         </div>
@@ -335,33 +295,6 @@ function buildActivityView(
   range: { from: string; to: string },
 ): ActivityView {
   return { days, summary: summarizeActivity(days, range) };
-}
-
-/**
- * Only providers sharing the dominant unit can be summed into one ring —
- * adding Cursor's message count to a token total would be meaningless.
- */
-function buildAiProviderBreakdown(
-  data: ActivityDataset,
-  range: { from: string; to: string },
-  providerLabels: Record<AiActivityView, string>,
-  colors: Record<AiActivityView, string>,
-) {
-  const providers = metricProviders(data, dominantMetric(data));
-  const totals = Object.fromEntries(providers.map((provider) => [provider, 0])) as Record<ActivityProvider, number>;
-  (data.ai?.days ?? []).forEach((day) => {
-    if (day.date < range.from || day.date > range.to) return;
-    providers.forEach((provider) => {
-      totals[provider] += day.providers?.[provider] ?? 0;
-    });
-  });
-
-  return providers.map((provider) => ({
-    id: provider,
-    label: providerLabels[provider],
-    value: totals[provider],
-    color: colors[provider],
-  }));
 }
 
 function buildAiActivityView(

@@ -7,8 +7,8 @@ and Cursor — on one card.
 ![The card in light mode](docs/preview-light.png)
 ![The card in dark mode](docs/preview-dark.png)
 
-*The screenshots show the optional card chrome. Out of the box the component
-renders just the charts — see [Layout](#layout).*
+*The screenshots show the optional card container. Out of the box the
+component renders just the heatmaps — see [Layout](#layout).*
 
 It ships as:
 
@@ -77,38 +77,33 @@ demo. For GitHub-only sites, use `showAi={false}` or pass a dataset without an
 
 ## Layout
 
-The package ships charts, not a layout. By default there is no card, no
-border, no heading and no meta line — just the grids, so the component drops
-into your own design without anything to override:
+The package ships heatmaps, not a layout. There is no heading, no caption and
+no border — write your own headings around the component and it drops into
+your design with nothing to override:
 
 ```tsx
 <ActivityGraph data={activity} />
 ```
 
-Every piece of chrome is opt-in. To rebuild the card in the screenshots:
+Wrap it however you like:
 
 ```tsx
-<ActivityGraph
-  data={activity}
-  title="The work behind the work."
-  card
-  showMeta
-/>
+<section>
+  <h2>Your own heading</h2>
+  <ActivityGraph data={activity} card />
+</section>
 ```
 
 | Prop | Default | Adds |
 | --- | --- | --- |
-| `title` | none | Heading above the charts. Accepts any node. |
-| `showMeta` | `false` | "Updated <date> · Last N weeks" |
 | `card` | `false` | Border, padding, background, shadow |
 | `showColumnLabels` | `true` | "GITHUB" / "AI ACTIVITY" and source lines |
 | `showStats` | `true` | Totals row above each calendar |
 | `showLegend` | `true` | less/more colour key |
-| `showDonut` | `true` | Provider breakdown ring |
 | `showProviderToggle` | `true` | All/Claude/Codex/Cursor switcher |
 | `showAi` | `true` | The AI column |
 
-Strip it back to a single bare grid:
+Strip it back to a single bare heatmap:
 
 ```tsx
 <ActivityGraph
@@ -234,8 +229,8 @@ values stored under the old one — 4 messages and 22,000,000 tokens cannot
 share a scale — so only an explicit config change may do that.
 
 Because Cursor's unit is not tokens, it never joins a day's token total. The
-**All** view and the donut aggregate the token providers; Cursor gets its own
-tab with its own label.
+**All** view aggregates the token providers; Cursor gets its own tab with its
+own label.
 
 Reading these databases needs SQLite. Node 22.5+ has it built in; older
 versions fall back to the `sqlite3` CLI. Both reads are read-only and take no

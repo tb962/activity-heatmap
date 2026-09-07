@@ -1,4 +1,4 @@
-import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
+import type { CSSProperties, HTMLAttributes } from "react";
 import type { ActivityCellShape } from "./activity-calendar.js";
 export declare const ACTIVITY_PROVIDERS: readonly ["claude", "codex", "cursor"];
 export type ActivityProvider = (typeof ACTIVITY_PROVIDERS)[number];
@@ -56,7 +56,7 @@ export type ActivityTheme = "light" | "dark" | "system";
 export type { ActivityCellShape };
 /** Per-view colour overrides. Keys not given fall back to the defaults. */
 export type ActivityColors = Partial<Record<AiActivityView | "github", string>>;
-export type ActivityGraphProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
+export type ActivityGraphProps = HTMLAttributes<HTMLElement> & {
     /** Pass a dataset to replace the built-in demo data. */
     data?: ActivityDataset;
     /** Number of calendar columns to render. Defaults to 20 weeks. */
@@ -69,10 +69,6 @@ export type ActivityGraphProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
     providerLabels?: Partial<Record<AiActivityView, string>>;
     /** Force a palette, or follow the visitor's OS setting. Defaults to "system". */
     theme?: ActivityTheme;
-    /** Heading above the charts. Nothing is rendered when omitted. */
-    title?: ReactNode;
-    /** "Updated <date> · Last N weeks" line beside the heading. */
-    showMeta?: boolean;
     /** Bordered, padded, shadowed container around the charts. */
     card?: boolean;
     /** Per-column "GITHUB" / "AI ACTIVITY" labels and their source lines. */
@@ -81,8 +77,6 @@ export type ActivityGraphProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
     showStats?: boolean;
     /** The less/more colour key under each calendar. */
     showLegend?: boolean;
-    /** The provider breakdown ring beside the AI calendar. */
-    showDonut?: boolean;
     /** The All/Claude/Codex/Cursor switcher. */
     showProviderToggle?: boolean;
     /** Day-cell shape. Defaults to "rounded". */

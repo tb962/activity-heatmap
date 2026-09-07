@@ -32,11 +32,7 @@ await mkdir(path.join(root, "docs"), { recursive: true });
 
 // The README shots show the card variant, since that is the assembled look.
 // The component's own default is bare — see examples/playground.html.
-const CARD_PROPS = {
-  title: "The work behind the work.",
-  showMeta: true,
-  card: true,
-};
+const CARD_PROPS = { card: true };
 
 // One page showing both themes, for eyeballing in a browser.
 const combined = THEMES.map(([theme, background]) =>
@@ -61,7 +57,7 @@ for (const [theme, background] of THEMES) {
       "--disable-gpu",
       "--hide-scrollbars",
       "--force-device-scale-factor=2",
-      "--window-size=1500,438",
+      "--window-size=1500,352",
       "--screenshot=" + path.join(root, "docs", "preview-" + theme + ".png"),
       "file://" + temporary,
     ]);

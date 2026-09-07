@@ -1,4 +1,4 @@
-import type { CSSProperties, HTMLAttributes, ReactNode } from "react";
+import type { CSSProperties, HTMLAttributes } from "react";
 
 import type { ActivityCellShape } from "./activity-calendar.js";
 
@@ -68,7 +68,7 @@ export type { ActivityCellShape };
 /** Per-view colour overrides. Keys not given fall back to the defaults. */
 export type ActivityColors = Partial<Record<AiActivityView | "github", string>>;
 
-export type ActivityGraphProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
+export type ActivityGraphProps = HTMLAttributes<HTMLElement> & {
   /** Pass a dataset to replace the built-in demo data. */
   data?: ActivityDataset;
   /** Number of calendar columns to render. Defaults to 20 weeks. */
@@ -83,14 +83,10 @@ export type ActivityGraphProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
   theme?: ActivityTheme;
 
   /*
-   * Chrome. Everything here is off by default: the package ships the charts,
-   * not a layout. Turn pieces on to build up a card, or leave them off and
-   * wrap the graph in your own.
+   * Chrome. The package ships heatmaps, not a layout — there is no heading,
+   * caption or surface unless you ask for one. Render your own headings
+   * around the component.
    */
-  /** Heading above the charts. Nothing is rendered when omitted. */
-  title?: ReactNode;
-  /** "Updated <date> · Last N weeks" line beside the heading. */
-  showMeta?: boolean;
   /** Bordered, padded, shadowed container around the charts. */
   card?: boolean;
   /** Per-column "GITHUB" / "AI ACTIVITY" labels and their source lines. */
@@ -99,8 +95,6 @@ export type ActivityGraphProps = Omit<HTMLAttributes<HTMLElement>, "title"> & {
   showStats?: boolean;
   /** The less/more colour key under each calendar. */
   showLegend?: boolean;
-  /** The provider breakdown ring beside the AI calendar. */
-  showDonut?: boolean;
   /** The All/Claude/Codex/Cursor switcher. */
   showProviderToggle?: boolean;
 

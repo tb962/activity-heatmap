@@ -115,12 +115,9 @@ const DEFAULTS = {
   cellGap: 3,
   showAi: true,
   card: false,
-  title: "",
-  showMeta: false,
   showColumnLabels: true,
   showStats: true,
   showLegend: true,
-  showDonut: true,
   showProviderToggle: true,
   github: "#216e39",
   all: "#2563eb",
@@ -196,13 +193,11 @@ function snippet(state) {
   const props = [];
   const add = (key, value) => props.push("  " + key + "=" + value);
 
-  if (state.title) add("title", JSON.stringify(state.title));
   if (state.theme !== "system") add("theme", JSON.stringify(state.theme));
   if (state.weeks !== 20) add("weeks", "{" + state.weeks + "}");
   if (!state.showAi) add("showAi", "{false}");
   if (state.card) props.push("  card");
-  if (state.showMeta) props.push("  showMeta");
-  for (const flag of ["showColumnLabels", "showStats", "showLegend", "showDonut", "showProviderToggle"]) {
+  for (const flag of ["showColumnLabels", "showStats", "showLegend", "showProviderToggle"]) {
     if (!state[flag]) add(flag, "{false}");
   }
   if (state.cellShape !== "rounded") add("cellShape", JSON.stringify(state.cellShape));
@@ -269,19 +264,10 @@ function Playground() {
 
       h("div", { className: "pg-group" },
         h("h2", null, "Chrome"),
-        h(Row, { label: "Title", htmlFor: "pg-title" },
-          h("input", {
-            id: "pg-title",
-            type: "text", value: state.title, placeholder: "none",
-            onChange: (e) => set("title", e.target.value),
-          }),
-        ),
         h(Toggle, { state, set, name: "card", label: "Card container" }),
-        h(Toggle, { state, set, name: "showMeta", label: "Meta line" }),
         h(Toggle, { state, set, name: "showColumnLabels", label: "Column labels" }),
         h(Toggle, { state, set, name: "showStats", label: "Stats row" }),
         h(Toggle, { state, set, name: "showLegend", label: "Legend" }),
-        h(Toggle, { state, set, name: "showDonut", label: "Donut" }),
         h(Toggle, { state, set, name: "showProviderToggle", label: "Provider toggle" }),
         h(Toggle, { state, set, name: "showAi", label: "AI column" }),
       ),
@@ -298,12 +284,9 @@ function Playground() {
           weeks: state.weeks,
           showAi: state.showAi,
           card: state.card,
-          title: state.title || undefined,
-          showMeta: state.showMeta,
           showColumnLabels: state.showColumnLabels,
           showStats: state.showStats,
           showLegend: state.showLegend,
-          showDonut: state.showDonut,
           showProviderToggle: state.showProviderToggle,
           cellShape: state.cellShape,
           cellSize: state.cellSize,

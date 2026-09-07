@@ -104,8 +104,7 @@ transcripts, or raw log files into the generated data.
 | GitHub | Contribution calendar via `GITHUB_TOKEN` or `gh auth token`. | contributions |
 | Claude Code | `~/.claude/projects/**/*.jsonl` | tokens |
 | Codex | `~/.codex/sessions/**/*.jsonl` and archived sessions | tokens |
-| Cursor | OpenUsage if running, else Cursor's `state.vscdb` | tokens, or messages / edited lines |
-| OpenUsage | `http://127.0.0.1:6736/v1/usage` when available | tokens |
+| Cursor | Cursor's own local databases | messages, AI edits, or edited lines |
 
 Every source is optional. If one is missing the sync keeps going and reports a
 warning; if you have none of them, the component still renders with demo data
@@ -114,48 +113,57 @@ or an explicit empty state.
 ### How Cursor is measured
 
 Claude Code and Codex write token counts into their own session logs. Cursor
-does not: its database has a `tokenCount` field on every message, but it is
-filled in on roughly 1 message in 5,000, so it cannot be charted.
+does not: token counts live only in your Cursor cloud account, and the
+`tokenCount` field in its local database is filled in on roughly 1 message in
+5,000, so it cannot be charted.
 
-Cursor tokens do exist — in Cursor's cloud usage API, which is what the
-[OpenUsage](https://github.com/nerdstudio-ai/openusage) menu-bar app reads.
-When OpenUsage is running, this package uses it and Cursor becomes a full
-token provider alongside Claude and Codex. When it is not, the collector falls
-back to Cursor's local database, which reliably records two other things.
+Rather than reach for your Cursor credentials, this package reads what Cursor
+already stores on disk. Two databases matter:
 
-`cursorMetric` picks between them:
+```
+~/Library/Application Support/Cursor/.../state.vscdb   conversations
+~/.cursor/ai-tracking/ai-code-tracking.db              AI-written code events
+```
 
-| Value | Source | Unit | History |
+`cursorMetric` picks what to chart:
+
+| Value | Counts | Accuracy | History |
 | --- | --- | --- | --- |
-| `auto` (default) | OpenUsage if running, else the local database | tokens, else messages | ~30 days, else all |
-| `tokens` | OpenUsage only | tokens | ~30 days |
-| `messages` | local database | messages per day | as far back as Cursor keeps |
-| `edits` | local database | lines added + removed | as far back as Cursor keeps |
+| `auto` (default) | `messages`, else `aiEdits` | — | — |
+| `messages` | messages per day | day, per conversation | months |
+| `aiEdits` | blocks of AI-written code | exact timestamp | ~2-week window |
+| `edits` | lines added + removed | day, per conversation | months |
 
-The tradeoff is coverage against comparability. OpenUsage gives real tokens
-that sit on the same axis as Claude and Codex, so Cursor joins the **All**
-view and the donut — but its usage trend is a rolling ~30-day window. The
-local database goes back much further but only in its own unit, so Cursor
-appears as its own tab and stays out of the token totals.
+`auto` picks `messages` because Cursor's conversation database goes back
+months while it prunes AI-edit tracking to a rolling window. Both are accurate
+enough for a daily grid — exact per-edit timestamps only change the picture
+for a thread spanning midnight — so coverage decides.
 
-A provider's series only ever holds one unit. If the unit changes between
-syncs — OpenUsage starts or stops running — the values stored in the old unit
-are discarded rather than merged, because 22,000,000 tokens and 4 messages
-cannot share a scale.
+Choose `aiEdits` if you would rather count AI-written code than conversation
+volume. It is the more precise signal and it excludes anything you typed
+yourself, but it starts near-empty and fills in from your first sync onward.
+That is fine: the collector keeps its own history file, so once a day is
+recorded it stays, whatever Cursor later prunes.
 
-Reading Cursor's database needs SQLite. Node 22.5+ has it built in; older
-versions fall back to the `sqlite3` CLI. The read is read-only and takes no
-lock, so it works while Cursor is open.
+Once a metric has been recorded, `auto` keeps it. Switching unit discards the
+values stored under the old one — 4 messages and 22,000,000 tokens cannot
+share a scale — so only an explicit config change may do that.
 
-Cursor conversations carry no per-message timestamps, so a thread is
-attributed to the day it was last updated.
+Because Cursor's unit is not tokens, it never joins a day's token total. The
+**All** view and the donut aggregate the token providers; Cursor gets its own
+tab with its own label.
 
-### A note on token counts
+Reading these databases needs SQLite. Node 22.5+ has it built in; older
+versions fall back to the `sqlite3` CLI. Both reads are read-only and take no
+lock, so they work while Cursor is open.
 
-Cache reads dominate token totals — typically well over 90% of the number. A
-long conversation replays its cached context on every turn, so tokens track
-conversation *length* more than work done. It is a legitimate activity signal,
-but do not read it as a measure of output.
+### No account access, ever
+
+The collector reads local files and calls exactly one network endpoint:
+GitHub's GraphQL API, with a token you supply. It never reads credentials for
+Claude, Codex, or Cursor, never touches your Keychain, and never calls a
+vendor's private API. Anything it cannot learn from a file on disk, it does
+not report.
 
 ## Reading the heatmap
 
@@ -197,14 +205,12 @@ normal scheduler. The collector has no server requirement.
   "historyDays": 730,
   "output": "data/activity.json",
   "historyOutput": "data/ai-activity-history.json",
-  "openUsageUrl": "http://127.0.0.1:6736/v1/usage",
   "cursorMetric": "auto",
   "sources": {
     "github": true,
     "codex": true,
     "claude": true,
-    "cursor": true,
-    "openUsage": true
+    "cursor": true
   }
 }
 ```
@@ -217,9 +223,8 @@ GITHUB_USERNAME
 GITHUB_TOKEN or GH_TOKEN
 ACTIVITY_TIMEZONE
 ACTIVITY_RANGE_DAYS
-ACTIVITY_CURSOR_METRIC   auto | tokens | messages | edits
+ACTIVITY_CURSOR_METRIC   auto | messages | aiEdits | edits
 AI_HISTORY_RETENTION_DAYS
-OPENUSAGE_URL
 ```
 
 To feed Cursor data from somewhere else — a cloud export, another editor —
@@ -253,8 +258,8 @@ npm test
 npm run build
 ```
 
-The collector tests use fixture logs, a fixture SQLite database, and a mocked
-GitHub/OpenUsage response. They never read your real home directory.
+The collector tests use fixture logs, fixture SQLite databases, and a mocked
+GitHub response. They never read your real home directory.
 
 To regenerate the screenshots above and a browsable preview page:
 

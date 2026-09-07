@@ -66,14 +66,12 @@ async function initProject(flags) {
     historyDays: 730,
     output: "data/activity.json",
     historyOutput: "data/ai-activity-history.json",
-    openUsageUrl: "http://127.0.0.1:6736/v1/usage",
     cursorMetric: "auto",
     sources: {
       github: true,
       codex: true,
       claude: true,
       cursor: true,
-      openUsage: true,
     },
   };
   await mkdir(path.join(cwd, "data"), { recursive: true });
@@ -95,9 +93,9 @@ async function doctor(flags) {
   console.log("  timezone: " + report.timezone);
   console.log("  Claude logs: " + (report.sources.claudeLogs ? "found" : "not found"));
   console.log("  Codex logs: " + (report.sources.codexLogs ? "found" : "not found"));
-  console.log("  OpenUsage: " + report.sources.openUsageUrl);
-  console.log("  Cursor database: " + (report.sources.cursorDb || "not found"));
-  console.log("  Cursor metric: " + report.cursorMetric + " (auto resolves to tokens when OpenUsage is running)");
+  console.log("  Cursor conversations: " + (report.sources.cursorDb || "not found"));
+  console.log("  Cursor AI tracking: " + (report.sources.cursorTrackingDb || "not found"));
+  console.log("  Cursor metric: " + report.cursorMetric);
   console.log("  Cursor export override: " + (report.sources.cursorFile ? "found" : "not configured"));
   console.log("  output: " + report.outputPath);
 }
@@ -140,8 +138,8 @@ Commands:
 
 Environment overrides:
   GITHUB_USERNAME, GITHUB_TOKEN, ACTIVITY_TIMEZONE,
-  ACTIVITY_RANGE_DAYS, AI_HISTORY_RETENTION_DAYS, OPENUSAGE_URL,
-  ACTIVITY_CURSOR_METRIC (auto | tokens | messages | edits)
+  ACTIVITY_RANGE_DAYS, AI_HISTORY_RETENTION_DAYS,
+  ACTIVITY_CURSOR_METRIC (auto | aiEdits | messages | edits)
 
 The sync reads aggregate token metadata only. It never writes prompts or raw logs.
 `);

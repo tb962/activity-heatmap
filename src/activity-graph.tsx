@@ -42,6 +42,7 @@ const DEFAULT_PROVIDER_LABELS: Record<AiActivityView, string> = {
  */
 const METRIC_LABELS: Record<string, string> = {
   tokens: "tokens",
+  aiEdits: "AI edits",
   messages: "messages",
   edits: "edited lines",
 };

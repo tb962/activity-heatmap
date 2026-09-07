@@ -30,7 +30,7 @@ export function createDemoActivityData({
     const providers: Partial<Record<ActivityProvider, number>> = {};
     if ((index * 5 + 1) % 7 > 1) providers.claude = ((index * 17) % 18 + 3) * 1_000_000;
     if ((index * 3 + 2) % 8 > 2) providers.codex = ((index * 29) % 13 + 2) * 1_000_000;
-    // Cursor reports messages, so it is deliberately a different order of
+    // Cursor reports AI edits, so it is deliberately a different order of
     // magnitude and never folded into totalTokens.
     if ((index * 11 + 3) % 9 > 2) providers.cursor = ((index * 23) % 40) + 4;
     const totalTokens = (providers.claude ?? 0) + (providers.codex ?? 0);
@@ -50,7 +50,7 @@ export function createDemoActivityData({
       metric: "tokens",
       available: true,
       source: "demo data — replace with your own ledger",
-      metrics: { claude: "tokens", codex: "tokens", cursor: "messages" },
+      metrics: { claude: "tokens", codex: "tokens", cursor: "aiEdits" },
       days: aiDays,
       coverage: {
         claude: { from: range.from, to: range.to, source: "demo data", complete: true },

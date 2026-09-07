@@ -18,6 +18,7 @@ const DEFAULT_PROVIDER_LABELS = {
  */
 const METRIC_LABELS = {
     tokens: "tokens",
+    aiEdits: "AI edits",
     messages: "messages",
     edits: "edited lines",
 };

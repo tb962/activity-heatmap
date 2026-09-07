@@ -18,7 +18,7 @@ export function createDemoActivityData({ weeks = 20, to = "2026-09-07", username
             providers.claude = ((index * 17) % 18 + 3) * 1000000;
         if ((index * 3 + 2) % 8 > 2)
             providers.codex = ((index * 29) % 13 + 2) * 1000000;
-        // Cursor reports messages, so it is deliberately a different order of
+        // Cursor reports AI edits, so it is deliberately a different order of
         // magnitude and never folded into totalTokens.
         if ((index * 11 + 3) % 9 > 2)
             providers.cursor = ((index * 23) % 40) + 4;
@@ -38,7 +38,7 @@ export function createDemoActivityData({ weeks = 20, to = "2026-09-07", username
             metric: "tokens",
             available: true,
             source: "demo data — replace with your own ledger",
-            metrics: { claude: "tokens", codex: "tokens", cursor: "messages" },
+            metrics: { claude: "tokens", codex: "tokens", cursor: "aiEdits" },
             days: aiDays,
             coverage: {
                 claude: { from: range.from, to: range.to, source: "demo data", complete: true },

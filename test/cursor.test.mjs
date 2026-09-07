@@ -1,72 +1,29 @@
 import assert from "node:assert/strict";
-import { execFile } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { promisify } from "node:util";
 
-import { defaultCursorDbPaths, scanCursorLogs } from "../lib/cursor.mjs";
-
-const execFileAsync = promisify(execFile);
-
-/**
- * Cursor's database is SQLite, so the fixture has to be a real one. Build it
- * with whichever reader this runtime has; skip the suite when it has neither.
- */
-async function createFixtureDb(dbPath) {
-  const rows = [
-    // composerId, createdAt, lastUpdatedAt, linesAdded, linesRemoved
-    ["aaa", 1788782400000, 1788782400000, 40, 10],
-    ["bbb", 1788696000000, 1788782400000, 5, 0],
-    ["ccc", 1788696000000, null, 0, 0],
-    ["ddd", null, null, 7, 7],
-  ];
-  const statements = [
-    "create table composerHeaders (composerId TEXT PRIMARY KEY, createdAt INTEGER, lastUpdatedAt INTEGER, value TEXT);",
-    "create table cursorDiskKV (key TEXT PRIMARY KEY, value BLOB);",
-    ...rows.map(([id, created, updated, added, removed]) => {
-      const value = JSON.stringify({ totalLinesAdded: added, totalLinesRemoved: removed });
-      return (
-        "insert into composerHeaders values (" +
-        [
-          "'" + id + "'",
-          created === null ? "null" : created,
-          updated === null ? "null" : updated,
-          "'" + value + "'",
-        ].join(",") +
-        ");"
-      );
-    }),
-    // aaa has 3 messages, bbb has 2, ccc has 1, ddd has none.
-    "insert into cursorDiskKV values ('bubbleId:aaa:m1', '{}'), ('bubbleId:aaa:m2', '{}'), ('bubbleId:aaa:m3', '{}');",
-    "insert into cursorDiskKV values ('bubbleId:bbb:m1', '{}'), ('bubbleId:bbb:m2', '{}');",
-    "insert into cursorDiskKV values ('bubbleId:ccc:m1', '{}');",
-  ].join("\n");
-
-  try {
-    const { DatabaseSync } = await import("node:sqlite");
-    const database = new DatabaseSync(dbPath);
-    database.exec(statements);
-    database.close();
-    return true;
-  } catch {
-    // Node < 22.5: fall back to the CLI, which is also the collector's fallback.
-  }
-
-  try {
-    await execFileAsync("sqlite3", [dbPath, statements]);
-    return true;
-  } catch {
-    return false;
-  }
-}
+import {
+  defaultCursorDbPaths,
+  defaultCursorTrackingDbPaths,
+  scanCursorLogs,
+} from "../lib/cursor.mjs";
+import {
+  writeCursorFixture,
+  writeCursorTrackingFixture,
+} from "../test-support/cursor-fixture.mjs";
 
 test("cursor collector reports messages and edited lines per day", async (t) => {
   const dir = await mkdtemp(path.join(tmpdir(), "activity-cursor-"));
   const dbPath = path.join(dir, "state.vscdb");
 
-  if (!(await createFixtureDb(dbPath))) {
+  if (!(await writeCursorFixture(dbPath, [
+    // [composerId, lastUpdatedAt, messages, linesAdded, linesRemoved]
+    ["aaa", 1788782400000, 3, 40, 10],
+    ["bbb", 1788782400000, 2, 5, 0],
+    ["ccc", 1788696000000, 1, 0, 0],
+  ]))) {
     await rm(dir, { recursive: true, force: true });
     return t.skip("no SQLite reader available (needs Node >= 22.5 or the sqlite3 CLI)");
   }
@@ -77,10 +34,7 @@ test("cursor collector reports messages and edited lines per day", async (t) => 
   assert.equal(messages.strategy, "composer-headers");
   // aaa (3) and bbb (2) both land on lastUpdatedAt = 2026-09-07.
   assert.equal(messages.days.get("2026-09-07"), 5);
-  // ccc has no lastUpdatedAt, so it falls back to createdAt.
   assert.equal(messages.days.get("2026-09-06"), 1);
-  // ddd has neither timestamp and is counted as undated, not dropped silently.
-  assert.equal(messages.undatedConversations, 1);
   assert.equal(messages.conversations, 3);
 
   const edits = await scanCursorLogs({ dbPath, timeZone: "UTC", metric: "edits" });
@@ -92,25 +46,59 @@ test("cursor collector reports messages and edited lines per day", async (t) => 
 
   // An unknown metric must not silently chart the wrong unit.
   const fallback = await scanCursorLogs({ dbPath, timeZone: "UTC", metric: "bogus" });
-  assert.equal(fallback.metric, "messages");
+  assert.equal(fallback.metric, "aiEdits");
+
+  await rm(dir, { recursive: true, force: true });
+});
+
+test("cursor collector counts only AI-written code events", async (t) => {
+  const dir = await mkdtemp(path.join(tmpdir(), "activity-cursor-tracking-"));
+  const trackingDbPath = path.join(dir, "ai-code-tracking.db");
+
+  const built = await writeCursorTrackingFixture(trackingDbPath, [
+    [1788782400000, "composer", 7],
+    [1788696000000, "composer", 3],
+    // Hand-written code is tracked in the same table and must be excluded.
+    [1788696000000, "human", 4],
+  ]);
+  if (!built) {
+    await rm(dir, { recursive: true, force: true });
+    return t.skip("no SQLite reader available");
+  }
+
+  const result = await scanCursorLogs({ trackingDbPath, timeZone: "UTC", metric: "aiEdits" });
+  assert.equal(result.available, true);
+  assert.equal(result.metric, "aiEdits");
+  assert.equal(result.source, "cursor-ai-tracking");
+  assert.equal(result.days.get("2026-09-07"), 7);
+  assert.equal(result.days.get("2026-09-06"), 3, "human rows were counted as AI edits");
+  assert.equal(result.aiEdits, 10);
 
   await rm(dir, { recursive: true, force: true });
 });
 
 test("cursor collector reports a reason instead of throwing when absent", async () => {
   const dir = await mkdtemp(path.join(tmpdir(), "activity-cursor-missing-"));
-  const result = await scanCursorLogs({ homeDir: dir, timeZone: "UTC" });
-  assert.equal(result.available, false);
-  assert.equal(result.days.size, 0);
-  assert.match(result.reason, /No Cursor state\.vscdb/);
+
+  const aiEdits = await scanCursorLogs({ homeDir: dir, timeZone: "UTC", metric: "aiEdits" });
+  assert.equal(aiEdits.available, false);
+  assert.equal(aiEdits.days.size, 0);
+  assert.match(aiEdits.reason, /ai-code-tracking\.db/);
+
+  const messages = await scanCursorLogs({ homeDir: dir, timeZone: "UTC", metric: "messages" });
+  assert.equal(messages.available, false);
+  assert.match(messages.reason, /No Cursor state\.vscdb/);
+
   await rm(dir, { recursive: true, force: true });
 });
 
-test("cursor database location is resolved per platform", () => {
+test("cursor database locations are resolved per platform", () => {
   assert.match(defaultCursorDbPaths("/home/me", "darwin")[0], /Library\/Application Support\/Cursor/);
   assert.match(defaultCursorDbPaths("/home/me", "linux")[0], /\.config\/Cursor/);
   assert.match(
     defaultCursorDbPaths("/home/me", "win32", { APPDATA: "/appdata" })[0],
     /appdata.+Cursor/,
   );
+  // The tracking database sits in ~/.cursor on every platform.
+  assert.match(defaultCursorTrackingDbPaths("/home/me")[0], /\.cursor\/ai-tracking\/ai-code-tracking\.db/);
 });

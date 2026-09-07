@@ -24,8 +24,11 @@ export async function writeCursorFixture(dbPath, conversations) {
     }
   }
 
-  const sql = statements.join("\n");
+  return runSql(dbPath, statements.join("\n"));
+}
 
+/** Returns false when this runtime has no SQLite reader, so callers can skip. */
+async function runSql(dbPath, sql) {
   try {
     const { DatabaseSync } = await import("node:sqlite");
     const database = new DatabaseSync(dbPath);
@@ -42,4 +45,28 @@ export async function writeCursorFixture(dbPath, conversations) {
   } catch {
     return false;
   }
+}
+
+/**
+ * Writes a minimal Cursor ai-code-tracking.db. `events` are
+ * [timestamp, source, count] — `count` rows are inserted for each entry.
+ * Returns false when this runtime has no SQLite reader.
+ */
+export async function writeCursorTrackingFixture(dbPath, events) {
+  const statements = [
+    "create table ai_code_hashes (hash TEXT PRIMARY KEY, source TEXT NOT NULL, fileExtension TEXT, fileName TEXT, requestId TEXT, conversationId TEXT, timestamp INTEGER, model TEXT, createdAt INTEGER NOT NULL);",
+  ];
+
+  let row = 0;
+  for (const [timestamp, source, count] of events) {
+    for (let index = 0; index < count; index += 1) {
+      row += 1;
+      statements.push(
+        "insert into ai_code_hashes (hash, source, timestamp, createdAt) values ('h" +
+          row + "','" + source + "'," + timestamp + "," + timestamp + ");",
+      );
+    }
+  }
+
+  return runSql(dbPath, statements.join("\n"));
 }

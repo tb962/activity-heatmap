@@ -6,8 +6,11 @@ import test from "node:test";
 
 import { syncActivity } from "../lib/collector.mjs";
 import { scanClaudeLogs, scanCodexLogs } from "../lib/local-ai.mjs";
-import { defaultCursorDbPaths } from "../lib/cursor.mjs";
-import { writeCursorFixture } from "../test-support/cursor-fixture.mjs";
+import { defaultCursorDbPaths, defaultCursorTrackingDbPaths } from "../lib/cursor.mjs";
+import {
+  writeCursorFixture,
+  writeCursorTrackingFixture,
+} from "../test-support/cursor-fixture.mjs";
 
 const fixtureHome = path.resolve("test/fixtures/home");
 
@@ -21,7 +24,7 @@ test("scans Claude Code and Codex token metadata without reading prompts", async
   assert.equal(codex.source, "codex-session-logs");
 });
 
-test("sync combines local logs, OpenUsage, and GitHub into activity.v1", async () => {
+test("sync combines local logs and GitHub into activity.v1", async () => {
   const cwd = await mkdtemp(path.join(tmpdir(), "activity-graph-test-"));
   const fetchImpl = async (url) => {
     if (url === "https://api.github.com/graphql") {
@@ -41,13 +44,7 @@ test("sync combines local logs, OpenUsage, and GitHub into activity.v1", async (
       }), { status: 200 });
     }
 
-    return new Response(JSON.stringify({
-      snapshots: [{
-        providerId: "claude",
-        fetchedAt: "2026-09-07T12:00:00.000Z",
-        lines: [{ type: "barChart", points: [{ date: "2026-09-06", value: 135 }] }],
-      }],
-    }), { status: 200 });
+    throw new Error("unexpected request to " + url);
   };
 
   await writeFile(path.join(cwd, "activity.config.json"), JSON.stringify({
@@ -57,7 +54,7 @@ test("sync combines local logs, OpenUsage, and GitHub into activity.v1", async (
     historyDays: 20,
     output: "data/activity.json",
     historyOutput: "data/history.json",
-    sources: { github: true, claude: true, codex: true, cursor: false, openUsage: true },
+    sources: { github: true, claude: true, codex: true, cursor: false },
   }));
 
   const report = await syncActivity({
@@ -92,7 +89,7 @@ test("cursor activity never leaks into a day's token total", async () => {
       output: "data/activity.json",
       historyOutput: "data/history.json",
       cursorFile: "cursor.json",
-      sources: { github: false, claude: true, codex: true, cursor: true, openUsage: false },
+      sources: { github: false, claude: true, codex: true, cursor: true },
     }),
   );
   // A Cursor export standing in for the workspace database.
@@ -123,35 +120,44 @@ test("cursor activity never leaks into a day's token total", async () => {
 });
 
 /**
- * OpenUsage reads Cursor's cloud usage API and reports tokens; Cursor's local
- * database only has message counts. Both land in providers.cursor, so a sync
- * that mixes them produces a series carrying two units at once.
+ * Cursor's signals live in different units — AI edits, messages, edited lines
+ * — and all of them land in providers.cursor. A series that mixes two of them
+ * is meaningless, so switching metric must replace the stored values.
  */
 test("a provider's series never mixes two units", async (t) => {
   const cwd = await mkdtemp(path.join(tmpdir(), "activity-graph-units-switch-"));
   const home = await mkdtemp(path.join(tmpdir(), "activity-graph-home-"));
-  const dbPath = defaultCursorDbPaths(home)[0];
-  await mkdir(path.dirname(dbPath), { recursive: true });
+  const conversationDb = defaultCursorDbPaths(home)[0];
+  const trackingDb = defaultCursorTrackingDbPaths(home)[0];
+  await mkdir(path.dirname(conversationDb), { recursive: true });
+  await mkdir(path.dirname(trackingDb), { recursive: true });
 
-  if (!(await writeCursorFixture(dbPath, [["conv-1", 1788696000000, 4]]))) {
+  const built =
+    (await writeCursorFixture(conversationDb, [["conv-1", 1788696000000, 4]])) &&
+    (await writeCursorTrackingFixture(trackingDb, [
+      [1788696000000, "composer", 9],
+      // Human-written code must never be counted as AI activity.
+      [1788696000000, "human", 5],
+    ]));
+  if (!built) {
     await rm(cwd, { recursive: true, force: true });
     await rm(home, { recursive: true, force: true });
     return t.skip("no SQLite reader available");
   }
 
-  await writeFile(
-    path.join(cwd, "activity.config.json"),
-    JSON.stringify({
-      timezone: "UTC",
-      rangeDays: 10,
-      historyDays: 20,
-      output: "data/activity.json",
-      historyOutput: "data/history.json",
-      cursorMetric: "auto",
-      sources: { github: false, claude: false, codex: false, cursor: true, openUsage: true },
-    }),
-  );
-
+  const writeConfig = (cursorMetric) =>
+    writeFile(
+      path.join(cwd, "activity.config.json"),
+      JSON.stringify({
+        timezone: "UTC",
+        rangeDays: 10,
+        historyDays: 20,
+        output: "data/activity.json",
+        historyOutput: "data/history.json",
+        cursorMetric,
+        sources: { github: false, claude: false, codex: false, cursor: true },
+      }),
+    );
   const options = {
     cwd,
     homeDir: home,
@@ -159,47 +165,36 @@ test("a provider's series never mixes two units", async (t) => {
     now: new Date("2026-09-07T12:00:00.000Z"),
     logger: { warn() {} },
   };
-  const openUsageUp = async () =>
-    new Response(
-      JSON.stringify({
-        snapshots: [
-          {
-            providerId: "cursor",
-            fetchedAt: "2026-09-07T12:00:00.000Z",
-            lines: [{ type: "barChart", points: [{ date: "2026-09-06", value: 22_000_000 }] }],
-          },
-        ],
-      }),
-      { status: 200 },
-    );
 
-  // OpenUsage wins while it is up: tokens, and the local message count for the
-  // very same day must not be merged in alongside it.
-  const withTokens = await syncActivity({ ...options, fetchImpl: openUsageUp });
-  assert.equal(withTokens.cursorMetric, "tokens");
+  // Explicit aiEdits counts only the AI-written rows.
+  await writeConfig("aiEdits");
+  const aiEdits = await syncActivity(options);
+  assert.equal(aiEdits.cursorMetric, "aiEdits");
 
   let data = JSON.parse(await readFile(path.join(cwd, "data/activity.json"), "utf8"));
-  assert.equal(data.ai.metrics.cursor, "tokens");
+  assert.equal(data.ai.metrics.cursor, "aiEdits");
   let day = data.ai.days.find((entry) => entry.date === "2026-09-06");
-  assert.equal(day.providers.cursor, 22_000_000);
-  // Cursor reports tokens here, so it counts toward the day's total.
-  assert.equal(day.totalTokens, 22_000_000);
+  assert.equal(day.providers.cursor, 9, "human-written rows leaked into the AI count");
+  // Cursor is not a token provider, so it stays out of the total.
+  assert.equal(day.totalTokens, 0);
 
-  // OpenUsage goes away and the local database takes over with messages. The
-  // token values recorded under providers.cursor are in the wrong unit now and
-  // must be replaced, not merged with.
-  const openUsageDown = async () => {
-    throw new Error("connection refused");
-  };
-  const withMessages = await syncActivity({ ...options, fetchImpl: openUsageDown });
-  assert.equal(withMessages.cursorMetric, "messages");
+  // Switching to messages must replace the AI-edit counts, not merge with them.
+  await writeConfig("messages");
+  const messages = await syncActivity(options);
+  assert.equal(messages.cursorMetric, "messages");
 
   data = JSON.parse(await readFile(path.join(cwd, "data/activity.json"), "utf8"));
   assert.equal(data.ai.metrics.cursor, "messages");
   day = data.ai.days.find((entry) => entry.date === "2026-09-06");
-  assert.equal(day.providers.cursor, 4, "stale Cursor tokens survived a unit change");
-  // And Cursor drops back out of the token total.
-  assert.equal(day.totalTokens, 0);
+  assert.equal(day.providers.cursor, 4, "stale AI-edit counts survived a unit change");
+
+  // Going back to "auto" must keep the recorded metric rather than re-deciding
+  // and wiping the series that has already been collected under it.
+  await writeConfig("auto");
+  const auto = await syncActivity(options);
+  assert.equal(auto.cursorMetric, "messages");
+  data = JSON.parse(await readFile(path.join(cwd, "data/activity.json"), "utf8"));
+  assert.equal(data.ai.days.find((entry) => entry.date === "2026-09-06").providers.cursor, 4);
 
   await rm(cwd, { recursive: true, force: true });
   await rm(home, { recursive: true, force: true });

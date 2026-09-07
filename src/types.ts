@@ -24,7 +24,7 @@ export type AiActivityCoverage = {
 
 /**
  * The component is intentionally data-only. A producer can write this shape
- * from GitHub, OpenUsage, a CSV, a database, or hand-authored demo data.
+ * from GitHub, a local log collector, a CSV, or hand-authored demo data.
  */
 export type ActivityDataset = {
   schema?: "activity.v1" | string;
@@ -47,7 +47,8 @@ export type ActivityDataset = {
     days?: AiActivityDay[];
     /**
      * Unit per provider. Claude and Codex report "tokens"; Cursor reports
-     * "messages" or "edits" because it does not persist token counts locally.
+     * "aiEdits", "messages" or "edits" because it keeps no token counts on
+     * disk — they exist only in a Cursor cloud account.
      */
     metrics?: Partial<Record<ActivityProvider, string>>;
     sources?: Partial<Record<ActivityProvider, string>>;

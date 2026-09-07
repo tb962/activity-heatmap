@@ -4,6 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Activity Heatmap — playground</title>
+<link rel="stylesheet" href="../node_modules/@tb962/heatmap-ui/src/styles.css" />
 <link rel="stylesheet" href="../src/styles.css" />
 <style>
   :root {
@@ -92,7 +93,8 @@
     "react": "https://esm.sh/react@19.2.0",
     "react/jsx-runtime": "https://esm.sh/react@19.2.0/jsx-runtime",
     "react-dom": "https://esm.sh/react-dom@19.2.0",
-    "react-dom/client": "https://esm.sh/react-dom@19.2.0/client"
+    "react-dom/client": "https://esm.sh/react-dom@19.2.0/client",
+    "@tb962/heatmap-ui": "/node_modules/@tb962/heatmap-ui/dist/index.js"
   }
 }
 </script>
@@ -106,6 +108,9 @@ import { createRoot } from "react-dom/client";
 import { ActivityGraph } from "../dist/index.js";
 
 const h = React.createElement;
+
+// Mirrors the shapes heatmapUI ships.
+const SHAPES = ["rounded", "square", "circle", "diamond", "hexagon", "plus", "bar", "ring"];
 
 const DEFAULTS = {
   theme: "system",
@@ -246,7 +251,7 @@ function Playground() {
             value: state.cellShape,
             onChange: (e) => set("cellShape", e.target.value),
             style: { width: "110px" },
-          }, ["rounded", "square", "circle"].map((s) => h("option", { key: s, value: s }, s))),
+          }, SHAPES.map((s) => h("option", { key: s, value: s }, s))),
         ),
         h(Slider, { state, set, name: "cellSize", label: "Size", min: 6, max: 26, suffix: "px" }),
         h(Slider, { state, set, name: "cellGap", label: "Gap", min: 0, max: 10, suffix: "px" }),

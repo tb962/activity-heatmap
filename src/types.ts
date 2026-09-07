@@ -1,6 +1,6 @@
 import type { CSSProperties, HTMLAttributes } from "react";
 
-import type { ActivityCellShape } from "./activity-calendar.js";
+import type { HeatmapShape } from "@tb962/heatmap-ui";
 
 export const ACTIVITY_PROVIDERS = ["claude", "codex", "cursor"] as const;
 
@@ -63,7 +63,8 @@ export type AiActivityView = "all" | ActivityProvider;
 /** "system" follows the visitor's prefers-color-scheme. */
 export type ActivityTheme = "light" | "dark" | "system";
 
-export type { ActivityCellShape };
+/** @deprecated Use HeatmapShape from @tb962/heatmap-ui. */
+export type ActivityCellShape = HeatmapShape;
 
 /** Per-view colour overrides. Keys not given fall back to the defaults. */
 export type ActivityColors = Partial<Record<AiActivityView | "github", string>>;
@@ -100,7 +101,7 @@ export type ActivityGraphProps = HTMLAttributes<HTMLElement> & {
 
   /* Appearance. */
   /** Day-cell shape. Defaults to "rounded". */
-  cellShape?: ActivityCellShape;
+  cellShape?: HeatmapShape;
   /** Day-cell size in pixels. Defaults to 13. */
   cellSize?: number;
   /** Gap between day cells in pixels. Defaults to 3. */

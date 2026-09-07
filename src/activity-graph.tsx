@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
+import { CalendarHeatmap, deriveRamp } from "@tb962/heatmap-ui";
+
 import {
   addDays,
   dateKey,
@@ -15,7 +17,6 @@ import {
   summarizeActivity,
   trimToDisplayRange,
 } from "./activity.js";
-import { ActivityCalendar } from "./activity-calendar.js";
 import { DEFAULT_ACTIVITY_DATA } from "./demo-data.js";
 import type {
   ActivityDataset,
@@ -44,6 +45,16 @@ const METRIC_LABELS: Record<string, string> = {
   messages: "messages",
   edits: "edited lines",
 };
+
+/**
+ * GitHub's own ramp, used verbatim so the contribution grid still looks like
+ * the thing it mirrors. Deriving four shades from a single seed is close but
+ * visibly flatter, so it is reserved for colours the caller supplies.
+ */
+const GITHUB_RAMP = {
+  light: ["#9be9a8", "#40c463", "#30a14e", "#216e39"],
+  dark: ["#0e4429", "#006d32", "#26a641", "#39d353"],
+} as const;
 
 const PROVIDER_COLORS: Record<AiActivityView | "github", string> = {
   github: "#216e39",
@@ -117,6 +128,10 @@ export function ActivityGraph({
     () => resolveMetricLabel(displayData, aiProvider),
     [displayData, aiProvider],
   );
+  // The ramp has to fade toward whatever the cells sit on, and the empty cell
+  // has to read as empty against it.
+  const ground = resolvedTheme === "dark" ? "#171614" : "#ffffff";
+  const emptyForTheme = resolvedTheme === "dark" ? "#26231f" : "#ebedf0";
   const githubSource = displayData.github.source ?? "github.com/" + (displayData.github.username ?? "your-handle");
   const aiConfigured = Boolean(displayData.ai && displayData.ai.available !== false);
   const rootClassName = [
@@ -160,22 +175,27 @@ export function ActivityGraph({
                 summaryLabel="GitHub activity summary"
               />
             ) : null}
-            <ActivityCalendar
-              theme={resolvedTheme}
-              data={githubView.days}
+            <CalendarHeatmap
+              values={githubView.days}
               to={displayData.range.to}
               weeks={weeks}
-              fitToWidth={false}
-              title="GitHub activity"
               unitLabel="contributions"
-              showSummary={false}
+              ariaLabel="GitHub activity"
               showLegend={showLegend}
-              baseColor={customColors?.github}
-              levelColors={levelColors}
-              emptyColor={emptyColor}
-              cell={cellSize}
+              colors={
+                levelColors ??
+                (customColors?.github
+                  ? deriveRamp(customColors.github, { ground })
+                  : GITHUB_RAMP[resolvedTheme])
+              }
+              emptyColor={emptyColor ?? emptyForTheme}
+              cellSize={cellSize}
               gap={cellGap}
               shape={cellShape}
+              data-heatmap-theme={resolvedTheme}
+              tooltip={(day) =>
+                day.known ? day.value + " contributions" : "No data for this day"
+              }
             />
           </div>
 
@@ -227,23 +247,24 @@ export function ActivityGraph({
                 />
               ) : null}
 
-              <ActivityCalendar
-                  theme={resolvedTheme}
-                  data={aiView.days}
-                  to={displayData.range.to}
-                  weeks={weeks}
-                  fitToWidth={false}
-                  title={providerLabels[aiProvider] + " AI activity"}
-                  unitLabel={aiMetricLabel}
-                  showSummary={false}
-                  showLegend={showLegend}
-                  baseColor={colors[aiProvider]}
-                  levelColors={levelColors}
-                  emptyColor={emptyColor}
-                  tooltip={(day) => formatCompactNumber(day.value) + " " + aiMetricLabel}
-                cell={cellSize}
+              <CalendarHeatmap
+                values={aiView.days}
+                to={displayData.range.to}
+                weeks={weeks}
+                unitLabel={aiMetricLabel}
+                ariaLabel={providerLabels[aiProvider] + " AI activity"}
+                showLegend={showLegend}
+                colors={levelColors ?? deriveRamp(colors[aiProvider], { ground })}
+                emptyColor={emptyColor ?? emptyForTheme}
+                cellSize={cellSize}
                 gap={cellGap}
                 shape={cellShape}
+                data-heatmap-theme={resolvedTheme}
+                tooltip={(day) =>
+                  day.known
+                    ? formatCompactNumber(day.value) + " " + aiMetricLabel
+                    : "No data for this day"
+                }
               />
             </div>
           ) : null}

@@ -1,9 +1,7 @@
 "use client";
 
 export { ActivityGraph } from "./activity-graph.js";
-export { ActivityCalendar } from "./activity-calendar.js";
 export { createDemoActivityData, DEFAULT_ACTIVITY_DATA } from "./demo-data.js";
-export type { ActivityCalendarProps } from "./activity-calendar.js";
 export {
   ACTIVITY_PROVIDERS,
   type ActivityCellShape,
@@ -17,13 +15,14 @@ export {
   type AiActivityView,
   type GitHubActivityDay,
 } from "./types.js";
-export {
-  activityLevel,
-  quantileThresholds,
-  type ActivityGridDay,
-  type ActivityGridPoint,
-  type ActivityGridResult,
-} from "./activity-grid.js";
+// Re-exported so consumers can reach the primitive without a second install.
+export { CalendarHeatmap, Heatmap, deriveRamp } from "@tb962/heatmap-ui";
+export type {
+  CalendarDay,
+  HeatmapProps,
+  HeatmapShape,
+  ResolvedCell,
+} from "@tb962/heatmap-ui";
 export {
   formatCompactNumber,
   formatDateLong,

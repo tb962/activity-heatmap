@@ -1,8 +1,11 @@
 # Activity Heatmap
 
-An open-source, data-driven activity heatmap for portfolio sites. It puts your
-GitHub contributions and your local AI coding activity — Claude Code, Codex,
-and Cursor — on one card.
+Your GitHub contributions and your local AI coding activity — Claude Code,
+Codex and Cursor — on one card, collected entirely from your own machine.
+
+The heatmaps themselves come from
+[heatmapUI](https://github.com/tb962/heatmapUI); this package adds the
+collectors, the CLI and the two-column layout.
 
 ![The card in light mode](docs/preview-light.png)
 ![The card in dark mode](docs/preview-dark.png)
@@ -24,7 +27,7 @@ on your machine until you choose to publish the generated aggregate JSON.
 Install it in the website where the graph should appear:
 
 ```bash
-npm install github:tb962/activity-heatmap
+npm install @tb962/activity-heatmap-ui
 ```
 
 Create a local config and put in your GitHub username:
@@ -59,15 +62,18 @@ import activity from "./data/activity.json";
 import {
   ActivityGraph,
   type ActivityDataset,
-} from "@tb962/activity-heatmap";
-import "@tb962/activity-heatmap/styles.css";
+} from "@tb962/activity-heatmap-ui";
+
+// Two stylesheets: the heatmap primitive, then this package's layout.
+import "@tb962/heatmap-ui/styles.css";
+import "@tb962/activity-heatmap-ui/styles.css";
 
 export function WorkBehindTheWork() {
   return <ActivityGraph data={activity as ActivityDataset} />;
 }
 ```
 
-For Next App Router, import the stylesheet once from `app/layout.tsx`. The
+For Next App Router, import both stylesheets once from `app/layout.tsx`. The
 component already declares its client boundary, so the page can remain a
 Server Component and pass the JSON as serializable props.
 
@@ -137,7 +143,9 @@ Strip it back to a single bare heatmap:
 | `emptyColor` | — | Colour of a day with no activity |
 
 Anything not covered by a prop is a CSS custom property — see
-[Theming](#theming).
+[Theming](#theming). For lower-level control, `Heatmap` and `CalendarHeatmap`
+are re-exported from [heatmapUI](https://github.com/tb962/heatmapUI), so you
+can drop this layout entirely and keep the grid.
 
 ### Playground
 

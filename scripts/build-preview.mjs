@@ -13,7 +13,11 @@ import { ActivityGraph } from "../dist/index.js";
 
 const execFileAsync = promisify(execFile);
 const root = path.resolve(import.meta.dirname, "..");
-const css = readFileSync(path.join(root, "src/styles.css"), "utf8");
+// The card's own styles plus the primitive's, which now owns the grid.
+const css = [
+  readFileSync(path.join(root, "node_modules/@tb962/heatmap-ui/src/styles.css"), "utf8"),
+  readFileSync(path.join(root, "src/styles.css"), "utf8"),
+].join("\n");
 const THEMES = [
   ["light", "#faf9f7"],
   ["dark", "#0f0e0d"],

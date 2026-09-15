@@ -1,0 +1,74 @@
+name: Preview page
+
+# Assembles examples/playground.html into a self-contained static site and
+# publishes it to GitHub Pages. The page reaches into ../dist and
+# ../node_modules, neither of which is committed, so the site is put together
+# at deploy time.
+#
+# Manual only until Pages is enabled for the repository. Add
+#   push:
+#     branches: [main]
+# once it is, and every merge republishes the preview.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race; let an in-flight one finish.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+      - name: Assemble the site
+        run: |
+          mkdir -p site/dist site/src site/vendor
+          cp -R dist/. site/dist/
+          cp src/styles.css site/src/styles.css
+          cp -R node_modules/@thilakbhat/heatmap-ui site/vendor/heatmap-ui
+          # The page sits one level down in the repo and reaches up with ../ ;
+          # at the site root the same files sit alongside it. The leading ./
+          # matters: a specifier without it is a *bare* one, and would go to
+          # the import map instead of the file next to us.
+          sed -e 's|\.\./node_modules/@thilakbhat/heatmap-ui/|./vendor/heatmap-ui/|g' \
+              -e 's|\.\./src/|./src/|g' \
+              -e 's|\.\./dist/|./dist/|g' \
+            examples/playground.html > site/index.html
+          # Fail loudly rather than deploying a page with dead references.
+          if grep -q '\.\./' site/index.html; then
+            echo "Unrewritten ../ reference left in site/index.html:"
+            grep -n '\.\./' site/index.html
+            exit 1
+          fi
+          test -s site/dist/index.js
+          test -s site/src/styles.css
+          test -s site/vendor/heatmap-ui/dist/index.js
+          test -s site/vendor/heatmap-ui/src/styles.css
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

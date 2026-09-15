@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { access, mkdir, readFile, writeFile } from "node:fs/promises";
+import { access, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -66,19 +66,18 @@ async function initProject(flags) {
     historyDays: 730,
     output: "data/activity.json",
     historyOutput: "data/ai-activity-history.json",
-    openUsageUrl: "http://127.0.0.1:6736/v1/usage",
+    cursorMetric: "auto",
     sources: {
       github: true,
       codex: true,
       claude: true,
-      cursor: false,
-      openUsage: true,
+      cursor: true,
     },
   };
   await mkdir(path.join(cwd, "data"), { recursive: true });
   await writeFile(configPath, JSON.stringify(config, null, 2) + "\n", "utf8");
   console.log("Created " + configPath);
-  console.log("Next: set github.username, then run activity-graph sync");
+  console.log("Next: set github.username, then run activity-heatmap sync");
 }
 
 async function doctor(flags) {
@@ -87,15 +86,17 @@ async function doctor(flags) {
     console.log(JSON.stringify(report, null, 2));
     return;
   }
-  console.log("activity-graph doctor");
+  console.log("activity-heatmap doctor");
   console.log("  config: " + report.configPath);
   console.log("  GitHub username: " + (report.username || "not configured"));
   console.log("  GitHub auth: " + (report.githubToken || "not found"));
   console.log("  timezone: " + report.timezone);
   console.log("  Claude logs: " + (report.sources.claudeLogs ? "found" : "not found"));
   console.log("  Codex logs: " + (report.sources.codexLogs ? "found" : "not found"));
-  console.log("  OpenUsage: " + report.sources.openUsageUrl);
-  console.log("  Cursor export: " + (report.sources.cursorFile ? "found" : "not configured"));
+  console.log("  Cursor conversations: " + (report.sources.cursorDb || "not found"));
+  console.log("  Cursor AI tracking: " + (report.sources.cursorTrackingDb || "not found"));
+  console.log("  Cursor metric: " + report.cursorMetric);
+  console.log("  Cursor export override: " + (report.sources.cursorFile ? "found" : "not configured"));
   console.log("  output: " + report.outputPath);
 }
 
@@ -112,7 +113,12 @@ async function sync(flags) {
       report.range.to,
   );
   Object.entries(report.scans).forEach(([provider, scan]) => {
-    console.log("  " + provider + ": " + scan.days.size + " active days from " + scan.files + " log files");
+    const unit = scan.metric || "tokens";
+    // A source may report explicit zeros for days it covered but saw no use;
+    // those are known days, not active ones.
+    const active = Array.from(scan.days.values()).filter((value) => value > 0).length;
+    const origin = scan.files === undefined ? scan.source : scan.files + " log files";
+    console.log("  " + provider + ": " + active + " active days of " + unit + " from " + origin);
   });
   console.log("  wrote " + report.outputPath);
   if (report.warnings.length > 0) {
@@ -121,18 +127,19 @@ async function sync(flags) {
 }
 
 function printHelp() {
-  console.log(`activity-graph — local activity data for a portfolio heatmap
+  console.log(`activity-heatmap — local activity data for a portfolio heatmap
 
 Commands:
-  activity-graph init [--username you] [--cwd path]
-  activity-graph doctor [--cwd path] [--home path] [--json]
-  activity-graph sync [--cwd path] [--home path]
-  activity-graph schedule [--cwd path]
-  activity-graph unschedule
+  activity-heatmap init [--username you] [--cwd path]
+  activity-heatmap doctor [--cwd path] [--home path] [--json]
+  activity-heatmap sync [--cwd path] [--home path]
+  activity-heatmap schedule [--cwd path]
+  activity-heatmap unschedule
 
 Environment overrides:
   GITHUB_USERNAME, GITHUB_TOKEN, ACTIVITY_TIMEZONE,
-  ACTIVITY_RANGE_DAYS, AI_HISTORY_RETENTION_DAYS, OPENUSAGE_URL
+  ACTIVITY_RANGE_DAYS, AI_HISTORY_RETENTION_DAYS,
+  ACTIVITY_CURSOR_METRIC (auto | aiEdits | messages | edits)
 
 The sync reads aggregate token metadata only. It never writes prompts or raw logs.
 `);
@@ -147,7 +154,7 @@ async function main() {
   if (command === "schedule") {
     const result = await installLaunchAgent({
       cwd: cwdFrom(flags),
-      cliPath: path.resolve(process.argv[1] || path.join(PACKAGE_ROOT, "bin/activity-graph.mjs")),
+      cliPath: path.resolve(process.argv[1] || path.join(PACKAGE_ROOT, "bin/activity-heatmap.mjs")),
     });
     console.log("Installed " + result.label + " at " + result.plistPath);
     return;
@@ -161,6 +168,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error("activity-graph: " + error.message);
+  console.error("activity-heatmap: " + error.message);
   process.exitCode = 1;
 });

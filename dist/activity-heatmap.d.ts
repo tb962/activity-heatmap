@@ -1,4 +1,4 @@
 import type { ActivityHeatmapProps } from "./types.js";
-export declare function ActivityHeatmap({ data, weeks, showAi, defaultAiProvider, providerLabels: customProviderLabels, theme, card, showColumnLabels, showStats, showLegend, showProviderToggle, cellShape, cellSize, cellGap, colors: customColors, levelColors, emptyColor, className, style, ...sectionProps }: ActivityHeatmapProps): import("react").JSX.Element;
+export declare function ActivityHeatmap({ data, weeks, showAi, showGithub, defaultAiProvider, providerLabels: customProviderLabels, theme, card, showColumnLabels, showStats, showLegend, showProviderToggle, cellShape, cellSize, cellGap, cellRadius, scale, levels, encode, unknownOpacity, weekStart, showMonthLabels, showWeekdayLabels, dimension, cellShape3d, blockStyle, blockTheme, material, animation, maxHeight, yaw, pitch, zoom, onCameraChange, interactive, colors: customColors, levelColors, emptyColor, className, style, ...sectionProps }: ActivityHeatmapProps): import("react").JSX.Element;
 export default ActivityHeatmap;
 //# sourceMappingURL=activity-heatmap.d.ts.map

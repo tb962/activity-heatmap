@@ -78,6 +78,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@tb962/heatmap-ui": "^0.1.0"
+    "@thilakbhat/heatmap-ui": "^0.1.0"
   }
 }

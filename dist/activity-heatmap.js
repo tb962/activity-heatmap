@@ -1,7 +1,7 @@
 "use client";
 import { jsx as _jsx, jsxs as _jsxs } from "react/jsx-runtime";
 import { useEffect, useMemo, useState } from "react";
-import { CalendarHeatmap, deriveRamp } from "@tb962/heatmap-ui";
+import { CalendarHeatmap, CalendarHeatmap3D, deriveRamp, } from "@thilakbhat/heatmap-ui";
 import { addDays, dateKey, formatCompactNumber, formatExactNumber, getCalendarRange, getProviderCoverage, isDateCovered, parseDateKey, sumAiProviderTokens, summarizeActivity, trimToDisplayRange, } from "./activity.js";
 import { DEFAULT_ACTIVITY_DATA } from "./demo-data.js";
 const PROVIDER_ORDER = ["claude", "codex", "cursor"];
@@ -37,7 +37,7 @@ const PROVIDER_COLORS = {
     codex: "#10a37f",
     cursor: "#181818",
 };
-export function ActivityHeatmap({ data = DEFAULT_ACTIVITY_DATA, weeks = 20, showAi = true, defaultAiProvider = "all", providerLabels: customProviderLabels, theme = "system", card = false, showColumnLabels = true, showStats = true, showLegend = true, showProviderToggle = true, cellShape = "rounded", cellSize = 13, cellGap = 3, colors: customColors, levelColors, emptyColor, className, style, ...sectionProps }) {
+export function ActivityHeatmap({ data = DEFAULT_ACTIVITY_DATA, weeks = 20, showAi = true, showGithub = true, defaultAiProvider = "all", providerLabels: customProviderLabels, theme = "system", card = false, showColumnLabels = true, showStats = true, showLegend = true, showProviderToggle = true, cellShape = "rounded", cellSize = 13, cellGap = 3, cellRadius, scale = "linear", levels = 4, encode = "color", unknownOpacity, weekStart = 0, showMonthLabels = true, showWeekdayLabels = false, dimension = "2d", cellShape3d = "rectangle", blockStyle = "solid", blockTheme = "color", material = "solid", animation = "none", maxHeight = 100, yaw = -35, pitch = 38, zoom = 1, onCameraChange, interactive = true, colors: customColors, levelColors, emptyColor, className, style, ...sectionProps }) {
     const [aiProvider, setAiProvider] = useState(defaultAiProvider);
     const resolvedTheme = useResolvedTheme(theme);
     // Memoised so downstream useMemo deps stay stable across renders.
@@ -55,6 +55,41 @@ export function ActivityHeatmap({ data = DEFAULT_ACTIVITY_DATA, weeks = 20, show
     // has to read as empty against it.
     const ground = resolvedTheme === "dark" ? "#171614" : "#ffffff";
     const emptyForTheme = resolvedTheme === "dark" ? "#26231f" : "#ebedf0";
+    // Every heatmap-ui control the card surfaces, resolved once. Both calendars
+    // are the same chart with different data, so they must not drift.
+    const sharedProps = {
+        weeks,
+        weekStart,
+        showMonthLabels,
+        showWeekdayLabels,
+        showLegend,
+        scale,
+        levels,
+        cellSize,
+        gap: cellGap,
+        unknownOpacity,
+        "data-heatmap-theme": resolvedTheme,
+    };
+    /**
+     * Three of the 3D themes paint their own blocks, so handing them a ramp
+     * would overrule a palette they never asked for. The colour props are
+     * withheld while one of them is on.
+     */
+    const themed3d = dimension === "3d" && blockTheme !== "color";
+    /**
+     * GitHub's own four shades are used verbatim at the default band count;
+     * anything else has to be derived, or the extra bands would all land on the
+     * darkest colour heatmap-ui clamps to.
+     */
+    const rampFor = (base, fixed) => levelColors ??
+        (fixed && fixed.length === levels ? [...fixed] : deriveRamp(base, { ground, levels }));
+    const paletteFor = (base, fixed) => themed3d ? {} : { colors: rampFor(base, fixed), emptyColor: emptyColor ?? emptyForTheme };
+    /**
+     * The flat calendar and the isometric one take the same data and differ
+     * only in how a cell is drawn, so the choice is made in one place rather
+     * than at every call site.
+     */
+    const renderCalendar = (view) => dimension === "3d" ? (_jsx(CalendarHeatmap3D, { ...sharedProps, shape: cellShape3d, blockStyle: blockStyle, theme: blockTheme, material: material, animation: animation, maxHeight: maxHeight, yaw: yaw, pitch: pitch, zoom: zoom, interactive: interactive, onCameraChange: onCameraChange, ...view })) : (_jsx(CalendarHeatmap, { ...sharedProps, shape: cellShape, encode: encode, radius: cellRadius, ...view }));
     const githubSource = displayData.github.source ?? "github.com/" + (displayData.github.username ?? "your-handle");
     const aiConfigured = Boolean(displayData.ai && displayData.ai.available !== false);
     const rootClassName = [
@@ -64,12 +99,25 @@ export function ActivityHeatmap({ data = DEFAULT_ACTIVITY_DATA, weeks = 20, show
     ]
         .filter(Boolean)
         .join(" ");
-    return (_jsx("section", { className: rootClassName, "data-activity-theme": theme === "system" ? undefined : theme, style: style, ...sectionProps, children: _jsx("div", { className: "activity-heatmap__surface", children: _jsxs("div", { className: showAi ? "activity-heatmap__columns" : "activity-heatmap__columns activity-heatmap__columns--single", children: [_jsxs("div", { className: "activity-heatmap__column", children: [showColumnLabels ? (_jsx("div", { className: "activity-heatmap__column-heading", children: _jsxs("div", { children: [_jsx("p", { className: "activity-heatmap__column-label", children: "GitHub" }), _jsxs("p", { className: "activity-heatmap__source", children: ["Source:", " ", displayData.github.href ? (_jsx("a", { href: displayData.github.href, target: "_blank", rel: "noreferrer", children: githubSource })) : githubSource] })] }) })) : null, showStats ? (_jsx(ActivitySummaryStats, { summary: githubView.summary, metricLabel: "contributions", summaryLabel: "GitHub activity summary" })) : null, _jsx(CalendarHeatmap, { values: githubView.days, to: displayData.range.to, weeks: weeks, unitLabel: "contributions", ariaLabel: "GitHub activity", showLegend: showLegend, colors: levelColors ??
-                                    (customColors?.github
-                                        ? deriveRamp(customColors.github, { ground })
-                                        : GITHUB_RAMP[resolvedTheme]), emptyColor: emptyColor ?? emptyForTheme, cellSize: cellSize, gap: cellGap, shape: cellShape, "data-heatmap-theme": resolvedTheme, tooltip: (day) => day.known ? day.value + " contributions" : "No data for this day" })] }), showAi ? (_jsxs("div", { className: "activity-heatmap__column activity-heatmap__column--ai", style: { "--activity-provider-color": colors[aiProvider] }, children: [showColumnLabels || showProviderToggle ? (_jsxs("div", { className: "activity-heatmap__column-heading", children: [showColumnLabels ? (_jsxs("div", { className: "activity-heatmap__column-heading-copy", children: [_jsx("p", { className: "activity-heatmap__column-label", children: "AI activity" }), _jsxs("p", { className: "activity-heatmap__source", children: ["Source: ", displayData.ai?.source ?? displayData.ai?.sources?.[aiProvider === "all" ? "claude" : aiProvider] ?? "No AI activity source connected"] }), !aiConfigured ? (_jsxs("p", { className: "activity-heatmap__empty-note", children: ["Pass ", _jsx("code", { children: "data.ai" }), " to replace the demo ledger."] })) : null] })) : null, showProviderToggle ? (_jsx("div", { className: "activity-heatmap__provider-toggle", role: "group", "aria-label": "Choose AI activity view", children: ["all", ...PROVIDER_ORDER].map((provider) => (_jsx("button", { type: "button", className: "activity-heatmap__provider-button", "data-active": aiProvider === provider ? "true" : "false", "aria-pressed": aiProvider === provider, onClick: () => setAiProvider(provider), children: providerLabels[provider] }, provider))) })) : null] })) : null, showStats ? (_jsx(ActivitySummaryStats, { summary: aiView.summary, metricLabel: aiMetricLabel, summaryLabel: providerLabels[aiProvider] + " activity summary" })) : null, _jsx(CalendarHeatmap, { values: aiView.days, to: displayData.range.to, weeks: weeks, unitLabel: aiMetricLabel, ariaLabel: providerLabels[aiProvider] + " AI activity", showLegend: showLegend, colors: levelColors ?? deriveRamp(colors[aiProvider], { ground }), emptyColor: emptyColor ?? emptyForTheme, cellSize: cellSize, gap: cellGap, shape: cellShape, "data-heatmap-theme": resolvedTheme, tooltip: (day) => day.known
+    return (_jsx("section", { className: rootClassName, "data-activity-theme": theme === "system" ? undefined : theme, style: style, ...sectionProps, children: _jsx("div", { className: "activity-heatmap__surface", children: _jsxs("div", { className: showAi && showGithub
+                    ? "activity-heatmap__columns"
+                    : "activity-heatmap__columns activity-heatmap__columns--single", children: [showGithub ? (_jsxs("div", { className: "activity-heatmap__column", children: [showColumnLabels ? (_jsx("div", { className: "activity-heatmap__column-heading", children: _jsxs("div", { children: [_jsx("p", { className: "activity-heatmap__column-label", children: "GitHub" }), _jsxs("p", { className: "activity-heatmap__source", children: ["Source:", " ", displayData.github.href ? (_jsx("a", { href: displayData.github.href, target: "_blank", rel: "noreferrer", children: githubSource })) : githubSource] })] }) })) : null, showStats ? (_jsx(ActivitySummaryStats, { summary: githubView.summary, metricLabel: "contributions", summaryLabel: "GitHub activity summary" })) : null, renderCalendar({
+                                values: githubView.days,
+                                to: displayData.range.to,
+                                unitLabel: "contributions",
+                                ariaLabel: "GitHub activity",
+                                tooltip: (day) => day.known ? day.value + " contributions" : "No data for this day",
+                                ...paletteFor(colors.github, customColors?.github ? undefined : GITHUB_RAMP[resolvedTheme]),
+                            })] })) : null, showAi ? (_jsxs("div", { className: "activity-heatmap__column activity-heatmap__column--ai", style: { "--activity-provider-color": colors[aiProvider] }, children: [showColumnLabels || showProviderToggle ? (_jsxs("div", { className: "activity-heatmap__column-heading", children: [showColumnLabels ? (_jsxs("div", { className: "activity-heatmap__column-heading-copy", children: [_jsx("p", { className: "activity-heatmap__column-label", children: "AI activity" }), _jsxs("p", { className: "activity-heatmap__source", children: ["Source: ", displayData.ai?.source ?? displayData.ai?.sources?.[aiProvider === "all" ? "claude" : aiProvider] ?? "No AI activity source connected"] }), !aiConfigured ? (_jsxs("p", { className: "activity-heatmap__empty-note", children: ["Pass ", _jsx("code", { children: "data.ai" }), " to replace the demo ledger."] })) : null] })) : null, showProviderToggle ? (_jsx("div", { className: "activity-heatmap__provider-toggle", role: "group", "aria-label": "Choose AI activity view", children: ["all", ...PROVIDER_ORDER].map((provider) => (_jsx("button", { type: "button", className: "activity-heatmap__provider-button", "data-active": aiProvider === provider ? "true" : "false", "aria-pressed": aiProvider === provider, onClick: () => setAiProvider(provider), children: providerLabels[provider] }, provider))) })) : null] })) : null, showStats ? (_jsx(ActivitySummaryStats, { summary: aiView.summary, metricLabel: aiMetricLabel, summaryLabel: providerLabels[aiProvider] + " activity summary" })) : null, renderCalendar({
+                                values: aiView.days,
+                                to: displayData.range.to,
+                                unitLabel: aiMetricLabel,
+                                ariaLabel: providerLabels[aiProvider] + " AI activity",
+                                tooltip: (day) => day.known
                                     ? formatCompactNumber(day.value) + " " + aiMetricLabel
-                                    : "No data for this day" })] })) : null] }) }) }));
+                                    : "No data for this day",
+                                ...paletteFor(colors[aiProvider]),
+                            })] })) : null] }) }) }));
 }
 /** Providers that share the dataset's dominant unit, in display order. */
 function metricProviders(data, metric) {

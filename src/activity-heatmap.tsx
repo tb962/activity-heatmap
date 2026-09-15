@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
 
-import { CalendarHeatmap, deriveRamp } from "@tb962/heatmap-ui";
+import {
+  CalendarHeatmap,
+  CalendarHeatmap3D,
+  deriveRamp,
+  type CalendarCell,
+  type CalendarDay,
+} from "@thilakbhat/heatmap-ui";
 
 import {
   addDays,
@@ -64,6 +70,17 @@ const PROVIDER_COLORS: Record<AiActivityView | "github", string> = {
   cursor: "#181818",
 };
 
+/** What differs between the two calendars; everything else is shared. */
+type CalendarView = {
+  values: CalendarDay[];
+  to: string;
+  unitLabel: string;
+  ariaLabel: string;
+  tooltip: (day: CalendarCell) => ReactNode;
+  colors?: string[];
+  emptyColor?: string;
+};
+
 type ActivityView = {
   days: Array<{ date: string; value: number; known?: boolean }>;
   summary: ReturnType<typeof summarizeActivity>;
@@ -73,6 +90,7 @@ export function ActivityHeatmap({
   data = DEFAULT_ACTIVITY_DATA,
   weeks = 20,
   showAi = true,
+  showGithub = true,
   defaultAiProvider = "all",
   providerLabels: customProviderLabels,
   theme = "system",
@@ -84,6 +102,26 @@ export function ActivityHeatmap({
   cellShape = "rounded",
   cellSize = 13,
   cellGap = 3,
+  cellRadius,
+  scale = "linear",
+  levels = 4,
+  encode = "color",
+  unknownOpacity,
+  weekStart = 0,
+  showMonthLabels = true,
+  showWeekdayLabels = false,
+  dimension = "2d",
+  cellShape3d = "rectangle",
+  blockStyle = "solid",
+  blockTheme = "color",
+  material = "solid",
+  animation = "none",
+  maxHeight = 100,
+  yaw = -35,
+  pitch = 38,
+  zoom = 1,
+  onCameraChange,
+  interactive = true,
   colors: customColors,
   levelColors,
   emptyColor,
@@ -132,6 +170,68 @@ export function ActivityHeatmap({
   // has to read as empty against it.
   const ground = resolvedTheme === "dark" ? "#171614" : "#ffffff";
   const emptyForTheme = resolvedTheme === "dark" ? "#26231f" : "#ebedf0";
+  // Every heatmap-ui control the card surfaces, resolved once. Both calendars
+  // are the same chart with different data, so they must not drift.
+  const sharedProps = {
+    weeks,
+    weekStart,
+    showMonthLabels,
+    showWeekdayLabels,
+    showLegend,
+    scale,
+    levels,
+    cellSize,
+    gap: cellGap,
+    unknownOpacity,
+    "data-heatmap-theme": resolvedTheme,
+  } as const;
+  /**
+   * Three of the 3D themes paint their own blocks, so handing them a ramp
+   * would overrule a palette they never asked for. The colour props are
+   * withheld while one of them is on.
+   */
+  const themed3d = dimension === "3d" && blockTheme !== "color";
+  /**
+   * GitHub's own four shades are used verbatim at the default band count;
+   * anything else has to be derived, or the extra bands would all land on the
+   * darkest colour heatmap-ui clamps to.
+   */
+  const rampFor = (base: string, fixed?: readonly string[]) =>
+    levelColors ??
+    (fixed && fixed.length === levels ? [...fixed] : deriveRamp(base, { ground, levels }));
+  const paletteFor = (base: string, fixed?: readonly string[]) =>
+    themed3d ? {} : { colors: rampFor(base, fixed), emptyColor: emptyColor ?? emptyForTheme };
+  /**
+   * The flat calendar and the isometric one take the same data and differ
+   * only in how a cell is drawn, so the choice is made in one place rather
+   * than at every call site.
+   */
+  const renderCalendar = (view: CalendarView) =>
+    dimension === "3d" ? (
+      <CalendarHeatmap3D
+        {...sharedProps}
+        shape={cellShape3d}
+        blockStyle={blockStyle}
+        theme={blockTheme}
+        material={material}
+        animation={animation}
+        maxHeight={maxHeight}
+        yaw={yaw}
+        pitch={pitch}
+        zoom={zoom}
+        interactive={interactive}
+        onCameraChange={onCameraChange}
+        {...view}
+      />
+    ) : (
+      <CalendarHeatmap
+        {...sharedProps}
+        shape={cellShape}
+        encode={encode}
+        radius={cellRadius}
+        {...view}
+      />
+    );
   const githubSource = displayData.github.source ?? "github.com/" + (displayData.github.username ?? "your-handle");
   const aiConfigured = Boolean(displayData.ai && displayData.ai.available !== false);
   const rootClassName = [
@@ -150,54 +250,52 @@ export function ActivityHeatmap({
       {...sectionProps}
     >
       <div className="activity-heatmap__surface">
-        <div className={showAi ? "activity-heatmap__columns" : "activity-heatmap__columns activity-heatmap__columns--single"}>
-          <div className="activity-heatmap__column">
-            {showColumnLabels ? (
-              <div className="activity-heatmap__column-heading">
-                <div>
-                  <p className="activity-heatmap__column-label">GitHub</p>
-                  <p className="activity-heatmap__source">
-                    Source:{" "}
-                    {displayData.github.href ? (
-                      <a href={displayData.github.href} target="_blank" rel="noreferrer">
-                        {githubSource}
-                      </a>
-                    ) : githubSource}
-                  </p>
+        <div
+          className={
+            showAi && showGithub
+              ? "activity-heatmap__columns"
+              : "activity-heatmap__columns activity-heatmap__columns--single"
+          }
+        >
+          {showGithub ? (
+            <div className="activity-heatmap__column">
+              {showColumnLabels ? (
+                <div className="activity-heatmap__column-heading">
+                  <div>
+                    <p className="activity-heatmap__column-label">GitHub</p>
+                    <p className="activity-heatmap__source">
+                      Source:{" "}
+                      {displayData.github.href ? (
+                        <a href={displayData.github.href} target="_blank" rel="noreferrer">
+                          {githubSource}
+                        </a>
+                      ) : githubSource}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ) : null}
+              ) : null}
 
-            {showStats ? (
-              <ActivitySummaryStats
-                summary={githubView.summary}
-                metricLabel="contributions"
-                summaryLabel="GitHub activity summary"
-              />
-            ) : null}
-            <CalendarHeatmap
-              values={githubView.days}
-              to={displayData.range.to}
-              weeks={weeks}
-              unitLabel="contributions"
-              ariaLabel="GitHub activity"
-              showLegend={showLegend}
-              colors={
-                levelColors ??
-                (customColors?.github
-                  ? deriveRamp(customColors.github, { ground })
-                  : GITHUB_RAMP[resolvedTheme])
-              }
-              emptyColor={emptyColor ?? emptyForTheme}
-              cellSize={cellSize}
-              gap={cellGap}
-              shape={cellShape}
-              data-heatmap-theme={resolvedTheme}
-              tooltip={(day) =>
-                day.known ? day.value + " contributions" : "No data for this day"
-              }
-            />
-          </div>
+              {showStats ? (
+                <ActivitySummaryStats
+                  summary={githubView.summary}
+                  metricLabel="contributions"
+                  summaryLabel="GitHub activity summary"
+                />
+              ) : null}
+              {renderCalendar({
+                values: githubView.days,
+                to: displayData.range.to,
+                unitLabel: "contributions",
+                ariaLabel: "GitHub activity",
+                tooltip: (day) =>
+                  day.known ? day.value + " contributions" : "No data for this day",
+                ...paletteFor(
+                  colors.github,
+                  customColors?.github ? undefined : GITHUB_RAMP[resolvedTheme],
+                ),
+              })}
+            </div>
+          ) : null}
 
           {showAi ? (
             <div
@@ -247,25 +345,17 @@ export function ActivityHeatmap({
                 />
               ) : null}
 
-              <CalendarHeatmap
-                values={aiView.days}
-                to={displayData.range.to}
-                weeks={weeks}
-                unitLabel={aiMetricLabel}
-                ariaLabel={providerLabels[aiProvider] + " AI activity"}
-                showLegend={showLegend}
-                colors={levelColors ?? deriveRamp(colors[aiProvider], { ground })}
-                emptyColor={emptyColor ?? emptyForTheme}
-                cellSize={cellSize}
-                gap={cellGap}
-                shape={cellShape}
-                data-heatmap-theme={resolvedTheme}
-                tooltip={(day) =>
+              {renderCalendar({
+                values: aiView.days,
+                to: displayData.range.to,
+                unitLabel: aiMetricLabel,
+                ariaLabel: providerLabels[aiProvider] + " AI activity",
+                tooltip: (day) =>
                   day.known
                     ? formatCompactNumber(day.value) + " " + aiMetricLabel
-                    : "No data for this day"
-                }
-              />
+                    : "No data for this day",
+                ...paletteFor(colors[aiProvider]),
+              })}
             </div>
           ) : null}
         </div>

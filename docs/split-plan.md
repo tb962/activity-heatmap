@@ -4,11 +4,11 @@ Two repositories. The UI component becomes a standalone library; this repo
 keeps the collectors and the two-column view and consumes it from npm.
 
 ```
-github.com/tb962/heatmap-ui        @tb962/heatmap-ui        the primitive
+github.com/tb962/heatmap-ui        @thilakbhat/heatmap-ui   the primitive
 github.com/tb962/activity-heatmap  @tb962/activity-heatmap  the product
 ```
 
-The dependency runs one way. `activity-heatmap` imports `@tb962/heatmap-ui`;
+The dependency runs one way. `activity-heatmap` imports `@thilakbhat/heatmap-ui`;
 `heatmap-ui` never learns what GitHub, Claude, Codex or Cursor are.
 
 ---
@@ -173,7 +173,7 @@ publishing to test:
 
 ```bash
 cd ../heatmap-ui && npm link
-cd ../activity-heatmap && npm link @tb962/heatmap-ui
+cd ../activity-heatmap && npm link @thilakbhat/heatmap-ui
 ```
 
 Never commit a `file:../heatmap-ui` dependency — it breaks every other clone.
@@ -182,7 +182,7 @@ Never commit a `file:../heatmap-ui` dependency — it breaks every other clone.
 without a bump in the product.
 
 **Catching breaks early.** Add a scheduled CI job in `activity-heatmap` that
-installs `@tb962/heatmap-ui@main` from git and runs the test suite. Without it
+installs `github:tb962/heatmap-ui` and runs the test suite. Without it
 you find out the interface drifted when a user does.
 
 **Publish order.** Always `heatmap-ui` first, then `activity-heatmap`. The product
@@ -199,7 +199,7 @@ can never reference an unpublished version.
    included, since they affect the layout code and are painful to retrofit.
 3. **Add `<CalendarHeatmap>`** and verify it reproduces the current output
    exactly. The existing screenshots are the regression test.
-4. **Publish `@tb962/heatmap-ui@0.1.0`.**
+4. **Publish `@thilakbhat/heatmap-ui@0.1.0`.**
 5. **Point this repo at it.** Delete the moved files, add the dependency,
    rewrite `activity-heatmap.tsx` against `<CalendarHeatmap>`. Screenshots
    should be pixel-identical; if they are not, the API is wrong.

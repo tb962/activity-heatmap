@@ -6,6 +6,7 @@ export {
   ACTIVITY_PROVIDERS,
   type ActivityColors,
   type ActivityDataset,
+  type ActivityDimension,
   type ActivityHeatmapProps,
   type ActivityProvider,
   type ActivityTheme,
@@ -15,13 +16,25 @@ export {
   type GitHubActivityDay,
 } from "./types.js";
 // Re-exported so consumers can reach the primitive without a second install.
-export { CalendarHeatmap, Heatmap, deriveRamp } from "@tb962/heatmap-ui";
+export {
+  CalendarHeatmap,
+  CalendarHeatmap3D,
+  Heatmap,
+  Heatmap3D,
+  deriveRamp,
+} from "@thilakbhat/heatmap-ui";
 export type {
+  CalendarCell,
   CalendarDay,
+  Heatmap3DBlockStyle,
+  Heatmap3DCamera,
+  Heatmap3DShape,
+  Heatmap3DThemeName,
   HeatmapProps,
+  HeatmapScale,
   HeatmapShape,
   ResolvedCell,
-} from "@tb962/heatmap-ui";
+} from "@thilakbhat/heatmap-ui";
 export {
   formatCompactNumber,
   formatDateLong,

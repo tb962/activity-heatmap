@@ -65,7 +65,7 @@ import {
 } from "@tb962/activity-heatmap";
 
 // Two stylesheets: the heatmap primitive, then this package's layout.
-import "@tb962/heatmap-ui/styles.css";
+import "@thilakbhat/heatmap-ui/styles.css";
 import "@tb962/activity-heatmap/styles.css";
 
 export function WorkBehindTheWork() {
@@ -108,6 +108,7 @@ Wrap it however you like:
 | `showLegend` | `true` | less/more colour key |
 | `showProviderToggle` | `true` | All/Claude/Codex/Cursor switcher |
 | `showAi` | `true` | The AI column |
+| `showGithub` | `true` | The GitHub column |
 
 Strip it back to a single bare heatmap:
 
@@ -120,6 +121,25 @@ Strip it back to a single bare heatmap:
   showLegend={false}
 />
 ```
+
+### One graph at a time
+
+`showAi` and `showGithub` are mirrors of each other, so either column can be
+the whole component. A single AI provider needs one more prop, because the
+built-in switcher would otherwise let a visitor change what the graph shows:
+
+```tsx
+<ActivityHeatmap data={activity} showAi={false} />        {/* GitHub only */}
+
+<ActivityHeatmap
+  data={activity}
+  showGithub={false}
+  defaultAiProvider="claude"
+  showProviderToggle={false}
+/>
+```
+
+Both are one calendar at full width rather than a column of a two-up card.
 
 ## Appearance
 
@@ -135,21 +155,62 @@ Strip it back to a single bare heatmap:
 
 | Prop | Default | Notes |
 | --- | --- | --- |
-| `cellShape` | `"rounded"` | `"rounded"`, `"square"` or `"circle"` |
+| `cellShape` | `"rounded"` | `rounded`, `square`, `circle`, `diamond`, `hexagon`, `plus`, `bar` or `ring` |
 | `cellSize` | `13` | Pixels per day cell |
 | `cellGap` | `3` | Pixels between cells |
-| `colors` | — | Base colour per view: `github`, `all`, `claude`, `codex`, `cursor`. Each is a hex seed; the four shades are derived from it. |
+| `cellRadius` | — | Corner rounding, overriding the shape's own |
+| `encode` | `"color"` | `color`, `size` or `both`. Size survives greyscale and colour blindness. |
+| `scale` | `"linear"` | `linear`, `quantile`, `log`, or your own function — see [Reading the heatmap](#reading-the-heatmap) |
+| `levels` | `4` | Shade bands. The ramp is derived at whatever count you ask for. |
+| `unknownOpacity` | `0.5` | Opacity of days outside a source's coverage |
+| `colors` | — | Base colour per view: `github`, `all`, `claude`, `codex`, `cursor`. Each is a hex seed; the shades are derived from it. |
 | `levelColors` | — | Replace the derived ramp outright, palest first |
 | `emptyColor` | — | Colour of a day with no activity |
+| `weekStart` | `0` | `0` starts weeks on Sunday, `1` on Monday |
+| `showMonthLabels` | `true` | The Jan/Feb/Mar row above the calendar |
+| `showWeekdayLabels` | `false` | Mon/Wed/Fri down the left edge |
 
-Anything not covered by a prop is a CSS custom property — see
-[Theming](#theming). For lower-level control, `Heatmap` and `CalendarHeatmap`
-are re-exported from [heatmap-ui](https://github.com/tb962/heatmap-ui), so you
-can drop this layout entirely and keep the grid.
+Everything from `cellShape` down is a
+[heatmap-ui](https://github.com/tb962/heatmap-ui) prop handed straight through
+to both calendars, so the two columns can never drift apart. Anything not
+covered by a prop is a CSS custom property — see [Theming](#theming). For
+lower-level control, `Heatmap` and `CalendarHeatmap` are re-exported from the
+same package, so you can drop this layout entirely and keep the grid.
 
-### Playground
+### The isometric mode
 
-Every control above, wired to a live graph with a copy-paste snippet:
+`dimension="3d"` swaps both calendars for heatmap-ui's isometric scene. It is
+plain SVG — no WebGL, no canvas, no second bundle — and takes the same data,
+tooltips and legend:
+
+```tsx
+<ActivityHeatmap data={activity} dimension="3d" blockStyle="lego" />
+```
+
+Height comes from the value itself rather than from its colour band, so a
+40-contribution day is twice the height of a 20.
+
+| Prop | Default | Notes |
+| --- | --- | --- |
+| `dimension` | `"2d"` | `"3d"` turns everything below on |
+| `cellShape3d` | `"rectangle"` | `rectangle`, `circle` (cylinder) or `bar` |
+| `blockStyle` | `"solid"` | `solid`, `lego` (studs) or `building` (lit windows) |
+| `blockTheme` | `"color"` | `color` uses your ramp; `night`, `seasonal` and `rainbow` pick their own |
+| `material` | `"solid"` | `pattern` fills the faces with SVG bitmaps |
+| `animation` | `"none"` | `grow` raises the blocks on mount |
+| `maxHeight` | `100` | Tallest block, in grid units |
+| `yaw` / `pitch` / `zoom` | `-35` / `38` / `1` | The camera |
+| `interactive` | `true` | Drag to orbit, arrows to rotate, `+`/`-` to zoom |
+| `onCameraChange` | — | Fires while the reader moves the camera |
+
+The three themes that pick their own colours ignore `colors`, `levelColors`
+and `emptyColor` — the component withholds them rather than letting a ramp
+they never asked for fight the theme.
+
+### Preview page
+
+One graph at a time — GitHub, all AI, or a single provider — with every
+control above wired to it and the matching props written out to copy:
 
 ```bash
 npm run build
@@ -158,6 +219,19 @@ npx serve .        # or any static server
 
 Then open `examples/playground.html`. It needs a network connection, because
 it pulls React from a CDN rather than bundling one.
+
+**Your own GitHub graph.** Put a username in the field above the chart and the
+GitHub calendar redraws with that account's public contributions, so you can
+judge a shape, a palette or the 3D mode against real data instead of the demo.
+
+Two things that field is not: it is not how the package gets your data, and it
+is not GitHub. The page is static and cannot hold a token, so it reads the
+public [`github-contributions-api.jogruber.de`](https://github-contributions-api.jogruber.de)
+proxy — public contribution counts only, for one year, for whatever username is
+typed. Real data comes from `npx activity-heatmap sync`, which talks to
+GitHub's own API with your token and never leaves your machine. The AI half of
+the preview stays demo data for the same reason: nothing public knows what your
+local Claude, Codex or Cursor logs contain.
 
 ## Theming
 
@@ -254,11 +328,21 @@ not report.
 
 ## Reading the heatmap
 
-Shade bands are cut at quantiles of your active days rather than at fractions
-of your busiest day. Token counts are heavy-tailed — one long day can be 20x
-the median — so scaling against the maximum collapses most of the calendar
-into the palest shade. Quantiles keep all four shades in use whatever the unit
-is.
+Shade bands are cut at even fractions of your busiest day, which is what
+GitHub does and what readers already know how to read. That is `scale="linear"`,
+the default.
+
+Token counts are heavy-tailed, though — one long day can be 20x the median — so
+scaling against the maximum collapses most of the calendar into the palest
+shade. `scale="quantile"` ranks your active days instead and keeps every band
+in use whatever the unit is:
+
+```tsx
+<ActivityHeatmap data={activity} scale="quantile" />
+```
+
+Try both in the preview page against your own numbers; which one reads better
+depends on how spiky your year was.
 
 Days outside a provider's known coverage render at half opacity and are marked
 `n/a` in the legend, so a gap in the data never reads as a day off.
